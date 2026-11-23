@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reparto Super 18</title>
+<style>
+:root{--bg:#f3f4f6;--card:#fff;--tx:#1b1f27;--mut:#6b7280;--ln:#e5e7eb;--pri:#c8102e;--ok:#16a34a;--warn:#d97706;--gm:#1a73e8;--blue:#2563eb}
+@media (prefers-color-scheme:dark){:root{--bg:#121418;--card:#1c2027;--tx:#eceef2;--mut:#9ca3af;--ln:#2c323c}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font:16px/1.35 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--tx);padding-bottom:96px}
+header{background:var(--pri);color:#fff;padding:10px 14px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:5}
+header h1{margin:0;font-size:18px;flex:1}
+.mode{display:flex;background:rgba(255,255,255,.18);border-radius:10px;padding:3px}
+.mode button{background:none;color:#fff;padding:7px 12px;font-size:14px;border-radius:8px}
+.mode button.on{background:#fff;color:var(--pri)}
+nav{display:flex;background:var(--card);border-bottom:1px solid var(--ln);position:sticky;top:52px;z-index:4}
+nav button{flex:1;background:none;border:0;border-bottom:3px solid transparent;border-radius:0;padding:12px 4px;font-weight:600;color:var(--mut)}
+nav button.on{color:var(--pri);border-bottom-color:var(--pri)}
+main{max-width:860px;margin:0 auto;padding:12px}
+button,.btn{appearance:none;border:0;border-radius:10px;padding:12px 14px;font:inherit;font-weight:600;cursor:pointer;background:var(--ln);color:var(--tx);text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+button:disabled{opacity:.45}
+.pri{background:var(--pri);color:#fff}.ok{background:var(--ok);color:#fff}.gm{background:var(--gm);color:#fff}.wz{background:#33ccff;color:#04324a}.warn{background:var(--warn);color:#fff}
+.w{width:100%}.sm{padding:7px 11px;font-size:14px}.ghost{background:none;color:var(--mut)}
+input,select{width:100%;padding:12px;border:1px solid var(--ln);border-radius:10px;font:inherit;background:var(--card);color:var(--tx)}
+label{display:block;font-size:13px;color:var(--mut);margin:10px 0 4px}
+.card{background:var(--card);border:1px solid var(--ln);border-radius:14px;margin-bottom:12px;overflow:hidden}
+.ch{padding:12px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--ln)}
+.ch b{flex:1}
+.cnt{font-size:13px;color:var(--mut);font-weight:600}
+.it{display:flex;align-items:center;gap:10px;padding:11px 14px;border-top:1px solid var(--ln)}
+.ch+.it,.it:first-child{border-top:0}
+.it .b{flex:1;min-width:0}
+.it .t{font-weight:600}
+.it .d{font-size:13px;color:var(--mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.n{width:30px;height:30px;border-radius:50%;color:#fff;background:var(--blue);font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;font-size:14px}
+.star{color:#f59e0b}
+.tag{font-size:12px;font-weight:700;border-radius:6px;padding:2px 7px;white-space:nowrap}
+.t-ok{background:#dcfce7;color:#166534}.t-no{background:#fee2e2;color:#991b1b}.t-go{background:#dbeafe;color:#1e40af}.t-pe{background:#f3f4f6;color:#374151}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.kpi{background:var(--card);border:1px solid var(--ln);border-radius:12px;padding:10px;text-align:center}
+.kpi b{display:block;font-size:24px}.kpi span{font-size:12px;color:var(--mut)}
+.empty{text-align:center;color:var(--mut);padding:30px 16px}
+.empty div{font-size:42px}
+.fab{position:fixed;left:50%;transform:translateX(-50%);bottom:14px;z-index:6;display:flex;gap:10px;width:min(836px,calc(100% - 24px))}
+.fab button{flex:1;padding:16px;font-size:17px;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+.sheet{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:35;display:none;align-items:flex-end;justify-content:center}
+.sheet.on{display:flex}
+.panel{background:var(--card);width:100%;max-width:640px;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:16px}
+.panel h3{margin:0 0 6px;font-size:18px;display:flex;align-items:center}
+.panel h3 span{flex:1}
+.x{background:none;color:var(--mut);padding:6px 8px;font-size:18px}
+.cl{display:flex;align-items:center;gap:10px;padding:12px 4px;border-bottom:1px solid var(--ln);cursor:pointer}
+.cl .b{flex:1;min-width:0}.cl .d{font-size:13px;color:var(--mut)}
+.chk{width:26px;height:26px;flex:none;accent-color:var(--pri)}
+.err{color:#dc2626;font-size:14px;margin-top:6px}
+.tip{font-size:13px;color:var(--mut);background:var(--bg);border-radius:10px;padding:10px;margin-top:8px}
+.banner{background:#fef3c7;color:#713f12;border-radius:10px;padding:10px 12px;font-size:14px;margin-bottom:12px}
+.row{display:flex;gap:8px}.row>*{flex:1}
+.mv{display:flex;flex-direction:column;gap:4px}
+.mv button{padding:4px 9px;font-size:13px}
+.drv{position:fixed;inset:0;background:var(--bg);z-index:30;display:none;flex-direction:column;padding:16px}
+.drv.on{display:flex}
+.drv .top{display:flex;align-items:center;gap:8px;color:var(--mut);font-weight:600}
+.drv .top span{flex:1}
+.bigc{flex:1;display:flex;flex-direction:column;justify-content:center;text-align:center;gap:8px}
+.bigc .k{font-size:15px;color:var(--mut);font-weight:600}
+.bigc .nm{font-size:32px;font-weight:800;line-height:1.1}
+.bigc .ad{font-size:20px}
+.bigc .nt{font-size:17px;background:#fef3c7;color:#713f12;border-radius:10px;padding:8px 12px;align-self:center}
+.drv .btns{display:flex;flex-direction:column;gap:10px}
+.drv .btns button,.drv .btns a{padding:18px;font-size:20px}
+.prog{height:6px;background:var(--ln);border-radius:9px;overflow:hidden;margin:10px 0}
+.prog i{display:block;height:100%;background:var(--ok)}
+.toast{position:fixed;left:50%;top:70px;transform:translateX(-50%);background:#111;color:#fff;padding:12px 18px;border-radius:12px;font-size:15px;opacity:0;transition:.25s;pointer-events:none;z-index:40;max-width:90%;text-align:center}
+.toast.on{opacity:1}
+.hidden{display:none!important}
+.sync{font-size:12px;opacity:.85}
+.dis{opacity:.45;pointer-events:none}
+.lok{font-size:14px;margin-top:6px}
+#map{height:calc(100vh - 230px);min-height:320px;border-radius:14px;border:1px solid var(--ln)}
+.pmap{height:230px;border-radius:12px;margin-top:8px;border:1px solid var(--ln)}
+.geo .cl{padding:10px 4px}
+.login{position:fixed;inset:0;background:var(--bg);z-index:60;display:none;align-items:center;justify-content:center;padding:16px}
+.login.on{display:flex}
+.leaflet-container{font:inherit}
+</style>
+<meta name="theme-color" content="#c8102e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<header>
+  <h1>🚚 Reparto <span class="sync" id="sync"></span> <span class="sync" id="gps"></span></h1>
+  <div class="mode"><button data-mode="ofi">Oficina</button><button data-mode="cho">Chofer</button></div>
+</header>
+
+<!-- ================= OFICINA ================= -->
+<div id="ofi">
+  <nav><button data-tab="ped" class="on">Pedidos</button><button data-tab="map">Mapa</button><button data-tab="cli">Clientes</button><button data-tab="cfg">Ajustes</button></nav>
+  <main>
+    <div id="banner"></div>
+    <section id="tab-ped">
+      <div class="kpis" id="kpis"></div>
+      <div id="ofiLists"></div>
+    </section>
+    <section id="tab-map" class="hidden">
+      <div id="map"></div>
+      <p class="cnt" id="mapInfo" style="line-height:1.6"></p>
+    </section>
+    <section id="tab-cli" class="hidden">
+      <div id="cliFix"></div>
+      <input id="cliSearch" placeholder="🔍 Buscar cliente">
+      <button class="w" id="cliNew" style="margin-top:10px">＋ Cliente nuevo</button>
+      <div id="cliList" class="card" style="margin-top:10px"></div>
+    </section>
+    <section id="tab-cfg" class="hidden">
+      <div class="card" style="padding:14px">
+        <label style="margin-top:0">Lugar de salida</label><input id="depName">
+        <label>Ubicación del lugar de salida</label><input id="depLoc" placeholder="-34.3156, -57.3520">
+        <div id="depErr" class="err"></div>
+        <div class="row">
+          <div><label>Hora de salida</label><input id="cStart" type="time"></div>
+          <div><label>Minutos por entrega</label><input id="cStopMin" type="number" min="0" inputmode="numeric"></div>
+        </div>
+        <div class="row">
+          <div><label>Velocidad (km/h)</label><input id="cSpeed" type="number" min="5" inputmode="numeric"></div>
+          <div><label>Al terminar</label><select id="cRet"><option value="1">Vuelve al local</option><option value="0">Termina en la última</option></select></div>
+        </div>
+      </div>
+      <div class="card" style="padding:14px">
+        <div class="cnt" id="who"></div>
+        <button class="w" id="logout" style="margin-top:10px">Cerrar sesión</button>
+      </div>
+    </section>
+  </main>
+  <div class="fab" id="ofiFab"><button class="pri" id="addOrder">＋ Nuevo pedido</button></div>
+</div>
+
+<!-- ================= CHOFER ================= -->
+<div id="cho" class="hidden">
+  <main>
+    <div id="choBody"></div>
+  </main>
+  <div class="fab" id="choFab"></div>
+</div>
+
+<!-- Hojas -->
+<div class="sheet" id="sh"><div class="panel" id="shp"></div></div>
+
+<!-- Modo manejo -->
+<div class="drv" id="drv">
+  <div class="top"><span id="drvTop"></span><button class="sm" id="drvClose">Lista ✕</button></div>
+  <div class="prog"><i id="drvProg"></i></div>
+  <div class="bigc" id="drvCard"></div>
+  <div class="btns" id="drvBtns"></div>
+</div>
+<div class="toast" id="toast"></div>
+<div class="login" id="login"><div class="card" style="padding:18px;max-width:420px;width:100%">
+  <h2 style="margin:0 0 4px">🚚 Reparto Super 18</h2><p class="cnt" style="margin:0">Entrá con tu usuario</p>
+  <label>Usuario</label><input id="lgE" autocomplete="username" autocapitalize="none" placeholder="Ej: chofer">
+  <label>Contraseña</label><input id="lgP" type="password" autocomplete="current-password">
+  <div id="lgErr" class="err"></div><button class="pri w" id="lgGo" style="margin-top:14px">Entrar</button>
+</div></div>
+
+<script>
+/* ============ utilidades ============ */
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const slug=s=>String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'chofer';
+const lget=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}};
+const lset=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+function toast(t,ms=2200){const e=$('toast');e.textContent=t;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('on'),ms)}
+const hhmm=ts=>{const d=new Date(ts);return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')};
+const todayStart=()=>{const d=new Date();d.setHours(0,0,0,0);return d.getTime()};
+
+/* ============ ubicación ============ */
+const okLL=(a,b)=>isFinite(a)&&isFinite(b)&&Math.abs(a)<=90&&Math.abs(b)<=180&&!(a===0&&b===0);
+function parseLoc(s){
+  if(!s)return null;s=String(s).trim();try{s=decodeURIComponent(s)}catch(e){}
+  let m=s.match(/(\d{1,3})°\s*(\d{1,2})['′]\s*([\d.]+)["″]?\s*([NS])[\s,]*(\d{1,3})°\s*(\d{1,2})['′]\s*([\d.]+)["″]?\s*([EWO])/i);
+  if(m){let a=+m[1]+m[2]/60+m[3]/3600,b=+m[5]+m[6]/60+m[7]/3600;if(/S/i.test(m[4]))a=-a;if(/[WO]/i.test(m[8]))b=-b;if(okLL(a,b))return{lat:a,lng:b}}
+  for(const p of[/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/,/[?&](?:q|query|ll|destination|daddr|center)=(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)/i,/@(-?\d+\.\d+),\s*(-?\d+\.\d+)/,/(-?\d{1,2}\.\d{3,})\s*[,;\s]\s*(-?\d{1,3}\.\d{3,})/]){m=s.match(p);if(m&&okLL(+m[1],+m[2]))return{lat:+m[1],lng:+m[2]}}
+  return null;
+}
+const ic=o=>o&&o.kind==='retiro'?'📥 ':'';
+const hasLL=p=>p&&typeof p.lat==='number'&&typeof p.lng==='number';
+const fmtLL=p=>hasLL(p)?p.lat.toFixed(6)+', '+p.lng.toFixed(6):'';
+const ll=p=>p.lat.toFixed(6)+','+p.lng.toFixed(6);
+function navUrl(o){return hasLL(o)?`https://www.google.com/maps/dir/?api=1&destination=${ll(o)}&travelmode=driving`:`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent((o.addr||o.name)+', Rosario, Colonia, Uruguay')}&travelmode=driving`}
+const mapsSearch=a=>`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(a+', Rosario, Colonia, Uruguay')}`;
+function Lmap(el,c,z){const m=window.L.map(el).setView([c.lat,c.lng],z);window.L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(m);return m}
+async function geocode(q){
+  const base='https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&countrycodes=uy&accept-language=es&q=';
+  const get=async u=>{const r=await fetch(u);if(!r.ok)throw new Error('http');return r.json()};
+  let r=await get(base+encodeURIComponent(q)+'&viewbox=-57.40,-34.27,-57.30,-34.37&bounded=1');
+  if(!r.length)r=await get(base+encodeURIComponent(q+', Rosario, Colonia'));
+  return r.map(x=>({lat:+x.lat,lng:+x.lon,label:x.display_name.split(',').slice(0,3).join(','),house:!!(x.address&&x.address.house_number)||x.addresstype==='building'||x.type==='house'}));
+}
+function hereLoc(ok,bad){if(!navigator.geolocation){bad('Este celular no tiene GPS disponible.');return}
+  navigator.geolocation.getCurrentPosition(p=>ok({lat:p.coords.latitude,lng:p.coords.longitude,acc:p.coords.accuracy}),e=>bad(e.code===1?'No diste permiso de ubicación. Activalo en el navegador.':'No pude leer el GPS. Probá de nuevo.'),{enableHighAccuracy:true,timeout:20000,maximumAge:0})}
+function locHelper(aId,lId,mId,okId){
+  const A=$(aId),LI=$(lId),B=$(mId),O=$(okId);
+  B.removeAttribute('href');B.removeAttribute('target');B.textContent='🔎 Buscar ubicación';
+  const box=document.createElement('div');
+  box.innerHTML=`<div class="geo"></div><div class="row" style="margin-top:8px"><button class="sm" type="button" data-here>📍 Estoy acá</button><a class="btn sm" data-gm target="_blank" rel="noopener">Ver en Google Maps</a></div><div class="pmap"></div><div class="cnt" style="margin-top:4px">Si el punto no está justo sobre la casa, arrastralo o tocá en el mapa.</div>`;
+  B.after(box);
+  const G=box.querySelector('.geo'),M=box.querySelector('.pmap'),GM=box.querySelector('[data-gm]');
+  let map=null,mk=null;
+  function show(p,noMk){
+    if(!window.L){M.style.display='none';return}
+    if(!map){map=Lmap(M,p,noMk?14:17);map.on('click',e=>setLL({lat:e.latlng.lat,lng:e.latlng.lng}))}
+    if(!noMk){if(!mk){mk=window.L.marker([p.lat,p.lng],{draggable:true}).addTo(map);mk.on('dragend',()=>{const q=mk.getLatLng();setLL({lat:q.lat,lng:q.lng},true)})}else mk.setLatLng([p.lat,p.lng]);map.setView([p.lat,p.lng],Math.max(map.getZoom(),17))}
+    setTimeout(()=>map.invalidateSize(),80);
+  }
+  function setLL(p,fromDrag){LI.value=p.lat.toFixed(6)+', '+p.lng.toFixed(6);chk(fromDrag)}
+  function chk(fromDrag){const v=LI.value.trim(),p=parseLoc(v);
+    GM.href=p?`https://www.google.com/maps/search/?api=1&query=${ll(p)}`:mapsSearch(A.value.trim()||'');
+    if(!v){O.innerHTML='';return}
+    if(p){O.innerHTML='<span style="color:var(--ok);font-weight:600">✓ Ubicación lista</span>';if(!fromDrag)show(p)}
+    else if(/goo\.gl|maps\.app/i.test(v))O.innerHTML='<span style="color:#dc2626">Ese es un link corto y no trae la ubicación.</span>';
+    else O.innerHTML='<span style="color:#dc2626">No reconozco esa ubicación.</span>'}
+  B.onclick=async()=>{const a=A.value.trim();if(!a){G.innerHTML='<p class="err">Escribí primero la dirección.</p>';A.focus();return}
+    G.innerHTML='<p class="cnt">Buscando…</p>';
+    try{const r=await geocode(a);
+      if(!r.length){G.innerHTML='<p class="err">No la encontré. Probá escribirla distinto (ej. "Artigas 512") o marcá el punto en el mapa.</p>';show(depot(),true);return}
+      const pick=i=>{setLL(r[i]);G.innerHTML=r[i].house?'':'<div class="banner" style="margin:8px 0 0">Encontré la calle, no la casa exacta. Mové el punto hasta la casa.</div>'};
+      if(r.length===1){pick(0);return}
+      G.innerHTML='<p class="cnt" style="margin:8px 0 0">¿Cuál es?</p>'+r.map((x,i)=>`<div class="cl" data-g="${i}"><div class="b">${esc(x.label)}</div></div>`).join('');
+      G.onclick=e=>{const d=e.target.closest('[data-g]');if(d){G.onclick=null;pick(+d.dataset.g)}};
+    }catch(e){G.innerHTML='<p class="err">No pude buscar. Revisá internet o marcá el punto en el mapa.</p>';show(depot(),true)}};
+  box.querySelector('[data-here]').onclick=()=>{O.innerHTML='<span class="cnt">Leyendo GPS…</span>';hereLoc(p=>{setLL(p);if(p.acc>60)O.innerHTML+=` <span class="cnt">(precisión ±${Math.round(p.acc)} m, revisá el punto)</span>`},m=>O.innerHTML=`<span style="color:#dc2626">${m}</span>`)};
+  A.addEventListener('input',()=>chk(true));LI.addEventListener('input',()=>chk());
+  const p0=parseLoc(LI.value);if(p0){chk()}else{chk(true);show(depot(),true)}
+}
+const LOCTIP='<div class="tip">Escribí la dirección y tocá <b>🔎 Buscar ubicación</b>. Después mirá en el mapa que el punto esté sobre la casa. Si estás en el lugar, tocá <b>📍 Estoy acá</b>.</div>';
+function syncOrdersLoc(cid,p){ordersArr().filter(o=>o.cid===cid&&(o.status==='pendiente'||o.status==='en_reparto')).forEach(o=>{const{id,...r}=o;put('orders',id,{...r,lat:p?p.lat:null,lng:p?p.lng:null})})}
+function wazeUrl(o){return hasLL(o)?`https://waze.com/ul?ll=${ll(o)}&navigate=yes`:`https://waze.com/ul?q=${encodeURIComponent((o.addr||o.name)+', Rosario, Colonia')}&navigate=yes`}
+
+/* ============ recorrido óptimo ============ */
+function dist(a,b){const r=Math.PI/180,dA=(b.lat-a.lat)*r,dO=(b.lng-a.lng)*r;const x=Math.sin(dA/2)**2+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dO/2)**2;return 2*6371*Math.asin(Math.sqrt(x))*1.3}
+// orden más corto desde "start", visitando pts, terminando en "end" (o donde convenga si end=null)
+function solve(start,pts,end){
+  const m=pts.length;if(!m)return[];
+  const D=(i,j)=>dist(i<0?start:pts[i],pts[j]),E=j=>end?dist(pts[j],end):0;
+  if(m<=13){
+    const N=1<<m,INF=1e18,dp=new Float64Array(N*m).fill(INF),par=new Int8Array(N*m).fill(-1),dm=[];
+    for(let i=0;i<m;i++){dm[i]=[];for(let j=0;j<m;j++)dm[i][j]=D(i,j)}
+    for(let j=0;j<m;j++)dp[(1<<j)*m+j]=D(-1,j);
+    for(let k=1;k<N;k++)for(let j=0;j<m;j++){const v=dp[k*m+j];if(v>=INF)continue;for(let q=0;q<m;q++){if(k>>q&1)continue;const nk=k|1<<q,nv=v+dm[j][q];if(nv<dp[nk*m+q]){dp[nk*m+q]=nv;par[nk*m+q]=j}}}
+    let best=INF,bj=0;for(let j=0;j<m;j++){const v=dp[(N-1)*m+j]+E(j);if(v<best){best=v;bj=j}}
+    const o=[];let k=N-1,j=bj;while(j>=0){o.push(j);const p=par[k*m+j];k^=1<<j;j=p}
+    return o.reverse();
+  }
+  let left=new Set(pts.map((_,i)=>i)),cur=-1,o=[];
+  while(left.size){let bk,bd=1e18;for(const k of left){const d=D(cur,k);if(d<bd){bd=d;bk=k}}o.push(bk);left.delete(bk);cur=bk}
+  const cost=o=>{let c=D(-1,o[0]);for(let i=1;i<o.length;i++)c+=dist(pts[o[i-1]],pts[o[i]]);return c+E(o[o.length-1])};
+  let bc=cost(o),imp=true;while(imp){imp=false;for(let i=0;i<m-1;i++)for(let k=i+1;k<m;k++){const t=o.slice(0,i).concat(o.slice(i,k+1).reverse(),o.slice(k+1)),c=cost(t);if(c<bc-1e-9){o=t;bc=c;imp=true}}}
+  return o;
+}
+// prioridades primero, después el resto; los sin ubicación al final
+function bestOrder(orders,start){
+  const dep=depot(),ret=+cfg().ret===1;start=start||dep;
+  const pr=orders.filter(o=>o.prio&&hasLL(o)),rs=orders.filter(o=>!o.prio&&hasLL(o)),nl=orders.filter(o=>!hasLL(o));
+  const a=solve(start,pr,null).map(i=>pr[i]);
+  const from=a.length?a[a.length-1]:start;
+  let b=solve(from,rs,ret?dep:null).map(i=>rs[i]);
+  // ida y vuelta: los dos sentidos miden lo mismo; elegir el que entrega antes (arranca por lo cercano)
+  if(ret&&b.length>1){const arr=l=>{let p=from,s=0,t=0;for(const o of l){s+=dist(p,o);t+=s;p=o}return t};const r=b.slice().reverse();if(arr(r)<arr(b)-1e-9)b=r}
+  return[...a,...b,...nl].map(o=>o.id);
+}
+
+/* ============ datos compartidos ============ */
+const SB_URL='https://swlbrygxqhcppcziajae.supabase.co',SB_KEY='sb_publishable_qoAZjJvgmiYgVHjlcZFmzg_1QX78E3J';
+const DEF_CFG={depot:{name:'Supermercado 18',lat:-34.3156,lng:-57.3520},start:'08:00',speed:30,stopMin:4,ret:1};
+const COLS=['clients','orders','routes','config','positions'];
+const D={clients:{},orders:{},routes:{},config:{},positions:{}};
+let SB=null,ready=false,chan=null;
+const depot=()=>Object.assign({},DEF_CFG.depot,(D.config||{}).depot||{});
+const cfg=()=>Object.assign({},DEF_CFG,D.config||{});
+const q={};
+function save(col,id,obj){if(!SB)return;const p=col+'/'+id;
+  q[p]=(q[p]||Promise.resolve()).then(async()=>{const{error}=await SB.from(col).upsert({id,data:obj,updated_at:new Date().toISOString()});if(error)throw error}).catch(e=>{console.error(e);toast('No se pudo guardar. Revisá internet.',3000)})}
+function put(col,id,obj){D[col]=Object.assign({},D[col],{[id]:obj});render();save(col,id,obj)}
+function del(col,id){const c=Object.assign({},D[col]);delete c[id];D[col]=c;render();if(!SB)return;const p=col+'/'+id;
+  q[p]=(q[p]||Promise.resolve()).then(async()=>{const{error}=await SB.from(col).delete().eq('id',id);if(error)throw error}).catch(()=>toast('No se pudo borrar'))}
+function putCfg(obj){D.config=obj;render();save('config','main',obj)}
+async function loadAll(){
+  const res=await Promise.all(COLS.map(c=>SB.from(c).select('id,data')));
+  res.forEach((r,i)=>{if(r.error)throw r.error;const c=COLS[i],m=Object.fromEntries(r.data.map(x=>[x.id,x.data]));if(c==='config')D.config=m.main||{};else D[c]=m});
+  ready=true;$('sync').textContent='· en vivo';render();loadCfg();
+}
+function notifyOrder(o,prev){
+  if(mode==='cho'&&me&&o.driver===me&&o.status==='en_reparto'&&o.sentByOffice&&(!prev||prev.driver!==me||prev.status!=='en_reparto')){toast(`🆕 La oficina te mandó: ${o.name}`,5000);try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e){}}
+  if(mode==='ofi'&&prev&&prev.status!==o.status){
+    if(o.status==='entregado')toast(`✅ ${o.driver||'Chofer'} entregó: ${o.name}`,4000);
+    if(o.status==='no_entregado')toast(`⚠️ ${o.driver||'Chofer'} no pudo entregar: ${o.name}`,4000)}
+}
+function onChange(pl){
+  const c=pl.table;if(!COLS.includes(c))return;
+  if(pl.eventType==='DELETE'){const id=pl.old&&pl.old.id;if(!id)return;if(c==='config')D.config={};else{const x=Object.assign({},D[c]);delete x[id];D[c]=x}render();return}
+  const id=pl.new.id,o=pl.new.data;
+  if(c==='config'){if(id==='main'){D.config=o||{};render();loadCfg()}return}
+  if(c==='orders')notifyOrder(o,D.orders[id]);
+  D[c]=Object.assign({},D[c],{[id]:o});render();
+}
+function subscribe(){
+  if(chan)SB.removeChannel(chan);
+  chan=SB.channel('reparto').on('postgres_changes',{event:'*',schema:'public'},onChange).subscribe(st=>{
+    if(st==='SUBSCRIBED')loadAll().catch(()=>{});
+    else if(st==='CHANNEL_ERROR'||st==='TIMED_OUT')$('sync').textContent='· reconectando…'});
+}
+function startSession(user){
+  $('login').classList.remove('on');$('sync').textContent='· conectando…';
+  $('who').textContent='Entraste como: '+((user&&user.email)||'');
+  loadAll().catch(e=>{console.error(e);$('sync').textContent='· sin conexión';toast('No se pudieron cargar los datos. Revisá internet.',4000)});
+  subscribe();
+}
+function showLogin(){
+  $('login').classList.add('on');
+  const go=async()=>{let e=$('lgE').value.trim().toLowerCase();const pw=$('lgP').value;if(!e||!pw){$('lgErr').textContent='Completá usuario y contraseña.';return}
+    if(!e.includes('@'))e+='@super18.uy';$('lgErr').textContent='';$('lgGo').disabled=true;$('lgGo').textContent='Entrando…';
+    const{data,error}=await SB.auth.signInWithPassword({email:e,password:pw});
+    $('lgGo').disabled=false;$('lgGo').textContent='Entrar';
+    if(error){$('lgErr').textContent=/invalid/i.test(error.message)?'Usuario o contraseña incorrectos.':'No se pudo entrar: '+error.message;return}
+    startSession(data.user)};
+  $('lgGo').onclick=go;$('lgP').onkeydown=e=>{if(e.key==='Enter')go()};
+}
+async function initData(){
+  if(!window.supabase){$('sync').textContent='· sin conexión';toast('No se pudo cargar la app. Revisá internet y recargá.',6000);return}
+  SB=supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
+  const{data:{session}}=await SB.auth.getSession();
+  if(!session){showLogin();return}
+  startSession(session.user);
+}
+$('logout').onclick=e=>confirmBtn(e.currentTarget,'¿Cerrar sesión?',async()=>{gpsStop();try{await SB.auth.signOut()}catch(x){}location.reload()});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)return;if(SB&&ready)loadAll().catch(()=>{});if(mode==='cho'&&$('drv').classList.contains('on'))keepAwake()});
+
+/* ============ GPS del chofer ============ */
+let gpsWatch=null,lastSent=0,lastPos=null,gpsState='',gpsWarned=false,wl=null;
+function updGps(){$('gps').textContent=mode!=='cho'?'':gpsState==='ok'?'· 📡 GPS':gpsState==='denied'?'· ⚠️ GPS apagado':gpsState==='err'?'· ⚠️ sin GPS':''}
+function gpsStart(){
+  if(gpsWatch!==null||!navigator.geolocation||!me||!SB)return;
+  gpsWatch=navigator.geolocation.watchPosition(p=>{gpsState='ok';updGps();
+    const c={lat:p.coords.latitude,lng:p.coords.longitude,acc:Math.round(p.coords.accuracy)},t=Date.now();
+    if(!lastPos||t-lastSent>20000||dist(lastPos,c)>0.06){lastSent=t;lastPos=c;const v={driver:me,...c,at:t};D.positions=Object.assign({},D.positions,{[slug(me)]:v});save('positions',slug(me),v)}},
+    e=>{gpsState=e.code===1?'denied':'err';updGps();if(e.code===1&&!gpsWarned){gpsWarned=true;toast('Activá la ubicación para que la oficina vea dónde estás.',5000)}},
+    {enableHighAccuracy:true,maximumAge:10000,timeout:30000});
+}
+function gpsStop(){if(gpsWatch!==null){navigator.geolocation.clearWatch(gpsWatch);gpsWatch=null}}
+async function keepAwake(){try{if('wakeLock' in navigator&&!wl){wl=await navigator.wakeLock.request('screen');wl.addEventListener('release',()=>wl=null)}}catch(e){}}
+
+/* ============ mapa de la oficina ============ */
+let omap=null,olayer=null,fitted=false;
+const emo=(e,dim)=>window.L.divIcon({className:'',html:`<div style="font-size:28px;line-height:1;${dim?'opacity:.45;filter:grayscale(1)':''}">${e}</div>`,iconSize:[30,30],iconAnchor:[15,15]});
+const agoMin=at=>Math.max(0,Math.round((Date.now()-at)/60000));
+const agoTxt=m=>m<1?'recién':m<60?`hace ${m} min`:`hace ${Math.floor(m/60)} h ${m%60} min`;
+function gpsLine(dn){const p=D.positions[slug(dn)];if(!p||!p.at||p.at<todayStart())return'';const m=agoMin(p.at);return`📡 GPS: ${agoTxt(m)}${m>=10?' ⚠️':''} · <a href="#" data-gomap style="color:var(--blue)">ver en el mapa</a><br>`}
+function renderMap(){
+  if(mode!=='ofi'||tab!=='map')return;
+  if(!window.L){$('mapInfo').textContent='No se pudo cargar el mapa. Revisá internet.';return}
+  if(!omap){omap=Lmap($('map'),depot(),14);olayer=window.L.layerGroup().addTo(omap)}
+  olayer.clearLayers();const pts=[],dep=depot();
+  window.L.marker([dep.lat,dep.lng],{icon:emo('🏪')}).bindTooltip(esc(dep.name)).addTo(olayer);pts.push([dep.lat,dep.lng]);
+  const ST={pendiente:'Pendiente',en_reparto:'En camino',entregado:'Entregado',no_entregado:'No entregado'};
+  ordersArr().filter(o=>hasLL(o)&&(o.status==='pendiente'||o.status==='en_reparto'||o.doneAt>=todayStart())).forEach(o=>{
+    const col=o.status==='entregado'?'#16a34a':o.status==='no_entregado'?'#dc2626':o.status==='en_reparto'?'#2563eb':'#9ca3af';
+    window.L.circleMarker([o.lat,o.lng],{radius:9,color:'#fff',weight:2,fillColor:col,fillOpacity:1}).bindPopup(`<b>${esc(o.name)}</b><br>${esc(o.addr||'')}<br>${o.driver?esc(o.driver)+' · ':''}${ST[o.status]||''}`).addTo(olayer);pts.push([o.lat,o.lng])});
+  const info=[];
+  Object.values(D.positions).forEach(p=>{if(!p||!hasLL(p)||!p.at||p.at<todayStart())return;const m=agoMin(p.at),old=m>=10;
+    window.L.marker([p.lat,p.lng],{icon:emo('🚚',old)}).bindTooltip(`${esc(p.driver)} · ${agoTxt(m)}`,{permanent:true,direction:'top',offset:[0,-16]}).addTo(olayer);pts.push([p.lat,p.lng]);
+    info.push(`🚚 <b>${esc(p.driver)}</b>: última señal ${agoTxt(m)}${old?' ⚠️ (puede tener la app cerrada o la pantalla apagada)':''}`)});
+  $('mapInfo').innerHTML=(info.join('<br>')||'Todavía no hay choferes con GPS hoy. Aparecen cuando abren la app en modo Chofer.')+'<br><span style="font-size:13px">⚪ pendiente · 🔵 en camino · 🟢 entregado · 🔴 no entregado</span>';
+  if(!fitted&&pts.length>1){omap.fitBounds(pts,{padding:[30,30],maxZoom:16});fitted=true}
+  setTimeout(()=>omap.invalidateSize(),60);
+}
+
+/* ============ modo ============ */
+let mode=lget('rep3_mode','ofi'),me=lget('rep3_me',''),tab='ped';
+function setMode(m){mode=m;lset('rep3_mode',m);document.querySelectorAll('.mode button').forEach(b=>b.classList.toggle('on',b.dataset.mode===m));$('ofi').classList.toggle('hidden',m!=='ofi');$('cho').classList.toggle('hidden',m!=='cho');render()}
+document.querySelectorAll('.mode button').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
+function goTab(t){tab=t;document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x.dataset.tab===t));['ped','map','cli','cfg'].forEach(k=>$('tab-'+k).classList.toggle('hidden',k!==t));$('ofiFab').classList.toggle('hidden',t!=='ped');renderMap()}
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>goTab(b.dataset.tab));
+
+/* ============ hojas ============ */
+function openSheet(html){$('shp').innerHTML=html;$('sh').classList.add('on')}
+function closeSheet(){$('sh').classList.remove('on')}
+$('sh').addEventListener('click',e=>{if(e.target.id==='sh'||e.target.closest('[data-close]'))closeSheet()});
+function confirmBtn(b,txt,fn){if(b.dataset.c){delete b.dataset.c;fn();return}const o=b.innerHTML;b.dataset.c=1;b.textContent=txt;b.classList.add('pri');setTimeout(()=>{if(b.isConnected&&b.dataset.c){delete b.dataset.c;b.innerHTML=o;b.classList.remove('pri')}},3000)}
+
+/* ============ OFICINA ============ */
+const ordersArr=()=>Object.entries(D.orders).map(([id,o])=>({id,...o}));
+const statusTag={pendiente:'<span class="tag t-pe">Pendiente</span>',en_reparto:'<span class="tag t-go">En camino</span>',entregado:'<span class="tag t-ok">Entregado</span>',no_entregado:'<span class="tag t-no">No entregado</span>'};
+function renderOfi(){
+  const all=ordersArr(),by=s=>all.filter(o=>o.status===s);
+  const pe=by('pendiente').sort((a,b)=>(b.prio?1:0)-(a.prio?1:0)||a.created-b.created),go=by('en_reparto'),ok=by('entregado').sort((a,b)=>b.doneAt-a.doneAt),no=by('no_entregado');
+  $('kpis').innerHTML=`<div class="kpi"><b>${pe.length}</b><span>Pendientes</span></div><div class="kpi"><b>${go.length}</b><span>En camino</span></div><div class="kpi"><b style="color:var(--ok)">${ok.length}</b><span>Entregados</span></div><div class="kpi"><b style="color:#dc2626">${no.length}</b><span>No entregados</span></div>`;
+  if(!all.length){$('ofiLists').innerHTML=`<div class="empty"><div>📦</div><p><b>No hay pedidos.</b></p><p>Tocá <b>＋ Nuevo pedido</b>. Los choferes eligen cuáles llevar desde su celular, en modo <b>Chofer</b>.</p></div>`;return}
+  let h='';
+  if(pe.length)h+=`<div class="card"><div class="ch"><b>Pendientes</b><span class="cnt">esperando chofer</span></div>${pe.map(o=>`<div class="it"><button class="ghost sm" data-prio="${o.id}" title="Prioridad">${o.prio?'<span class="star">★</span>':'☆'}</button><div class="b"><div class="t">${ic(o)}${esc(o.name)}</div><div class="d">${esc(o.addr||'')}${o.note?' · '+esc(o.note):''}${hasLL(o)?'':' · ⚠️ sin ubicación'}</div></div><button class="ghost sm" data-delo="${o.id}">✕</button></div>`).join('')}</div>`;
+  const drivers=[...new Set(go.map(o=>o.driver))];
+  drivers.forEach(dn=>{const r=D.routes[slug(dn)],mine=all.filter(o=>o.driver===dn&&(o.status==='en_reparto'||(o.status!=='pendiente'&&o.doneAt>=todayStart())));
+    const ids=(r&&r.ids||[]).filter(id=>mine.some(o=>o.id===id));mine.forEach(o=>{if(!ids.includes(o.id))ids.push(o.id)});
+    const lst=ids.map(id=>mine.find(o=>o.id===id)),dn2=lst.filter(o=>o.status!=='en_reparto').length;
+    const last=lst.filter(o=>o.status!=='en_reparto').sort((a,b)=>b.doneAt-a.doneAt)[0],next=lst.find(o=>o.status==='en_reparto');
+    const since=last?last.doneAt:Math.max(...lst.map(o=>o.takenAt||0)),ago=Math.max(0,Math.round((Date.now()-since)/60000));
+    const agoTxt=ago<1?'recién':ago<60?`hace ${ago} min`:`hace ${Math.floor(ago/60)} h ${ago%60} min`;
+    let eta='';if(next&&hasLL(next)){const from=last&&hasLL(last)?last:depot();eta=hhmm(since+(dist(from,next)/Math.max(1,+cfg().speed||30)*60+(last?0:0))*60000+(last?(+cfg().stopMin||0)*60000:0))}
+    const where=`<div style="padding:10px 14px;background:var(--bg);font-size:14px;line-height:1.5">${gpsLine(dn)}📍 ${last?`<b>${last.status==='entregado'?'Entregó en':'Pasó por'} ${esc(last.name)}</b> ${agoTxt}`:`<b>Salió del local</b> ${agoTxt}`}${next?`<br>➡️ Ahora va a <b>${esc(next.name)}</b>${next.addr?' ('+esc(next.addr)+')':''}${eta?` · llega aprox. ${eta}`:''}`:'<br>🏁 Terminó el recorrido'}${ago>=30&&next?'<br><span style="color:#d97706">⏱ Hace rato que no marca nada</span>':''}</div>`;
+    h+=`<div class="card"><div class="ch"><b>🚚 ${esc(dn)}</b><span class="cnt">${dn2}/${lst.length} hechos</span></div>${where}${lst.map((o,i)=>`<div class="it"><span class="n" style="background:${o.status==='entregado'?'var(--ok)':o.status==='no_entregado'?'#dc2626':'var(--blue)'}">${o.status==='entregado'?'✓':o.status==='no_entregado'?'!':i+1}</span><div class="b"><div class="t">${o.prio?'<span class="star">★</span> ':''}${ic(o)}${esc(o.name)}</div><div class="d">${esc(o.addr||'')}${o.reason?' · '+esc(o.reason):''}</div></div>${o.doneAt&&o.status!=='en_reparto'?`<span class="cnt">${hhmm(o.doneAt)}</span>`:''}</div>`).join('')}</div>`});
+  if(no.length)h+=`<div class="card"><div class="ch"><b>No entregados</b></div>${no.map(o=>`<div class="it"><div class="b"><div class="t">${ic(o)}${esc(o.name)}</div><div class="d">${esc(o.driver||'')} · ${esc(o.reason||'')} · ${o.doneAt?hhmm(o.doneAt):''}</div></div><button class="sm" data-back="${o.id}">↩ A pendientes</button></div>`).join('')}</div>`;
+  if(ok.length)h+=`<div class="card"><div class="ch"><b>Entregados</b><button class="sm" id="clearOk">🧹 Limpiar</button></div>${ok.map(o=>`<div class="it"><div class="b"><div class="t">${ic(o)}${esc(o.name)}</div><div class="d">${esc(o.driver||'')}${o.note?' · '+esc(o.note):''}</div></div>${statusTag.entregado}<span class="cnt">${hhmm(o.doneAt)}</span></div>`).join('')}</div>`;
+  $('ofiLists').innerHTML=h;
+  const c=$('clearOk');if(c)c.onclick=e=>confirmBtn(e.currentTarget,'¿Borrar entregados?',()=>{ok.forEach(o=>del('orders',o.id));toast('Listo')});
+}
+$('ofiLists').onclick=e=>{
+  if(e.target.closest('[data-gomap]')){e.preventDefault();goTab('map');return}
+  const p=e.target.closest('[data-prio]'),d=e.target.closest('[data-delo]'),b=e.target.closest('[data-back]');
+  if(p){const o=D.orders[p.dataset.prio];put('orders',p.dataset.prio,{...o,prio:!o.prio})}
+  if(d)confirmBtn(d,'¿Borrar?',()=>del('orders',d.dataset.delo));
+  if(b){const o=D.orders[b.dataset.back];put('orders',b.dataset.back,{...o,status:'pendiente',driver:'',reason:'',doneAt:0})}
+};
+
+/* nuevo pedido */
+function drivers(){return[...new Set([...Object.values(D.routes).map(r=>r.driver),...ordersArr().map(o=>o.driver)].filter(Boolean))]}
+let pkTo='',pkKind='entrega';
+function pickHtml(){const ds=drivers();if(pkTo&&!ds.includes(pkTo))pkTo='';
+  return `<h3><span>Nuevo pedido</span><button class="x" data-close>✕</button></h3>
+  <div class="row"><select id="pkKind"><option value="entrega" ${pkKind==='entrega'?'selected':''}>📦 Entrega</option><option value="retiro" ${pkKind==='retiro'?'selected':''}>📥 Retiro / levantar algo</option></select>
+  <select id="pkTo"><option value="">Dejar en pendientes</option>${ds.map(d=>`<option value="${esc(d)}" ${pkTo===d?'selected':''}>🚚 Mandar a ${esc(d)}</option>`).join('')}</select></div>
+  <input id="pkNote" placeholder="Nota (opcional). Ej: retirar 3 cajas" style="margin-top:8px">
+  <input id="pkS" placeholder="🔍 Buscar cliente" style="margin-top:8px"><div id="pkL"></div>
+  <div class="row" style="margin-top:12px"><button id="pkNew">＋ Cliente nuevo</button><button id="pkOnce">📍 Lugar de una vez</button></div>`}
+function orderOpts(){return{kind:($('pkKind')&&$('pkKind').value)||'entrega',to:($('pkTo')&&$('pkTo').value)||'',note:($('pkNote')&&$('pkNote').value.trim())||''}}
+function renderPick(){
+  const qv=($('pkS').value||'').trim().toLowerCase(),busy=new Set(ordersArr().filter(o=>o.status==='pendiente'||o.status==='en_reparto').map(o=>o.cid));
+  const list=Object.entries(D.clients).map(([id,c])=>({id,...c})).filter(c=>!qv||(c.name+' '+(c.addr||'')).toLowerCase().includes(qv)).sort((a,b)=>(b.uses||0)-(a.uses||0)||a.name.localeCompare(b.name));
+  $('pkL').innerHTML=list.length?list.map(c=>`<div class="cl" data-pk="${c.id}"><div class="b"><div><b>${c.prio?'<span class="star">★</span> ':''}${esc(c.name)}</b></div><div class="d">${esc(c.addr||'')}${busy.has(c.id)?' · ya tiene un pedido activo':''}</div></div><span style="font-size:22px;color:var(--pri);font-weight:700">＋</span></div>`).join(''):`<p class="cnt" style="padding:14px 4px">${Object.keys(D.clients).length?'No encontré ese cliente.':'Todavía no hay clientes. Cargá el primero 👇'}</p>`;
+}
+function createOrder(base,opts){opts=opts||{};const id=uid(),now=Date.now();
+  put('orders',id,{cid:base.cid||'',name:base.name,addr:base.addr||'',tel:base.tel||'',lat:base.lat??null,lng:base.lng??null,prio:!!base.prio,kind:opts.kind||'entrega',note:opts.note||'',
+    status:opts.to?'en_reparto':'pendiente',driver:opts.to||'',takenAt:opts.to?now:0,sentByOffice:!!opts.to,created:now,doneAt:0,reason:''});
+  toast(opts.to?`🚚 Enviado a ${opts.to} ✓`:'Pedido agregado ✓');return id}
+function newOrder(cid,opts){const c=D.clients[cid];put('clients',cid,{...c,uses:(c.uses||0)+1});return createOrder({cid,...c},opts)}
+$('addOrder').onclick=()=>{openSheet(pickHtml());renderPick();$('pkS').oninput=renderPick;
+  $('pkKind').onchange=e=>pkKind=e.target.value;$('pkTo').onchange=e=>pkTo=e.target.value;
+  $('pkL').onclick=e=>{const p=e.target.closest('[data-pk]');if(!p)return;newOrder(p.dataset.pk,orderOpts());$('pkNote').value='';renderPick()};
+  $('pkNew').onclick=()=>clientForm(null,orderOpts());
+  $('pkOnce').onclick=()=>onceForm(orderOpts())};
+function onceForm(opts){
+  openSheet(`<h3><span>${opts.kind==='retiro'?'📥 Retiro':'📍 Lugar'} de una sola vez</span><button class="x" data-close>✕</button></h3>
+  <p class="cnt">No se guarda como cliente. ${opts.to?'Va directo al recorrido de <b>'+esc(opts.to)+'</b>.':'Queda en pendientes.'}</p>
+  <label>¿Qué es? *</label><input id="oN" placeholder="Ej: Ferretería López – levantar caños" autocomplete="off">
+  <label>Dirección *</label><input id="oA" placeholder="Ej: Rivera 230" autocomplete="off">
+  <a class="btn gm w" id="oM" target="_blank" rel="noopener" style="margin-top:8px">🔎 Buscar esta dirección en Google Maps</a>
+  <label>Ubicación exacta (recomendado)</label><input id="oL" placeholder="-34.3141, -57.3489" autocomplete="off"><div id="oOk" class="lok"></div>${LOCTIP}
+  <div id="oE" class="err"></div><button class="pri w" id="oS" style="margin-top:14px">${opts.to?'Enviar al chofer':'Guardar'}</button>`);
+  $('oS').onclick=()=>{const name=$('oN').value.trim(),addr=$('oA').value.trim(),lv=$('oL').value.trim(),p=parseLoc(lv);
+    if(!name||!addr){$('oE').textContent='Falta qué es o la dirección.';return}
+    if(lv&&!p){$('oE').textContent='No reconozco la ubicación. Dejala vacía o pegá los números de Google Maps.';return}
+    createOrder({name,addr,lat:p?p.lat:null,lng:p?p.lng:null},opts);closeSheet()};
+  locHelper('oA','oL','oM','oOk');
+  setTimeout(()=>$('oN').focus(),60);
+}
+
+/* cliente */
+function clientForm(id,andOrder){
+  const c=id?D.clients[id]:{name:($('pkS')&&$('pkS').value)||''};
+  openSheet(`<h3><span>${id?'Editar cliente':'Cliente nuevo'}</span><button class="x" data-close>✕</button></h3>
+  <label style="margin-top:0">Nombre *</label><input id="fN" value="${esc(c.name||'')}" autocomplete="off">
+  <label>Dirección *</label><input id="fA" value="${esc(c.addr||'')}" placeholder="Ej: Artigas 512" autocomplete="off">
+  <a class="btn gm w" id="fM" target="_blank" rel="noopener" style="margin-top:8px">🔎 Buscar esta dirección en Google Maps</a>
+  <label>Ubicación exacta <span style="font-weight:400">(recomendado, para el mejor recorrido)</span></label><input id="fL" value="${esc(fmtLL(c))}" placeholder="-34.3141, -57.3489" autocomplete="off"><div id="fOk" class="lok"></div>
+  ${LOCTIP}
+  <label>Teléfono</label><input id="fT" value="${esc(c.tel||'')}" inputmode="tel" autocomplete="off">
+  <label class="row" style="align-items:center;gap:10px;color:var(--tx);font-size:16px;margin-top:14px"><input type="checkbox" class="chk" id="fP" ${c.prio?'checked':''} style="flex:0 0 26px"> <span>★ Siempre con prioridad (ej. escuelas)</span></label>
+  <div id="fE" class="err"></div>
+  <button class="pri w" id="fS" style="margin-top:14px">${id?'Guardar':andOrder?'Guardar y crear pedido':'Guardar'}</button>`);
+  $('fS').onclick=()=>{
+    const name=$('fN').value.trim(),addr=$('fA').value.trim(),lv=$('fL').value.trim(),p=parseLoc(lv);
+    if(!name||!addr){$('fE').textContent='Falta el nombre o la dirección.';return}
+    if(lv&&!p){$('fE').textContent='No reconozco la ubicación. Pegá los números de Google Maps (ej. -34.3141, -57.3489) o dejala vacía.';return}
+    const nid=id||uid();put('clients',nid,{...(id?D.clients[id]:{uses:0}),name,addr,tel:$('fT').value.trim(),prio:$('fP').checked,lat:p?p.lat:null,lng:p?p.lng:null});
+    if(id)syncOrdersLoc(id,p);
+    if(andOrder){newOrder(nid,typeof andOrder==='object'?andOrder:{})}else toast('Cliente guardado');
+    closeSheet();
+  };
+  locHelper('fA','fL','fM','fOk');
+  setTimeout(()=>$(id?'fA':'fN').focus(),60);
+}
+function fixLoc(skip){skip=skip||[];
+  const c=Object.entries(D.clients).map(([id,c])=>({id,...c})).filter(c=>!hasLL(c)&&!skip.includes(c.id)).sort((a,b)=>(b.prio?1:0)-(a.prio?1:0)||(b.uses||0)-(a.uses||0));
+  if(!c.length){closeSheet();toast(skip.length?'Listo. Quedaron algunos salteados.':'¡Todos los clientes tienen ubicación! ✓',3000);return}
+  const x=c[0];
+  openSheet(`<h3><span>📍 Completar ubicaciones</span><button class="x" data-close>✕</button></h3><p class="cnt">Faltan ${c.length}. Primero los de prioridad y los que más piden.</p>
+  <div style="font-size:21px;font-weight:800;margin-top:8px">${x.prio?'<span class="star">★</span> ':''}${esc(x.name)}</div>
+  <label>Dirección</label><input id="zA" value="${esc(x.addr||'')}" autocomplete="off">
+  <a class="btn gm w" id="zM" target="_blank" rel="noopener" style="margin-top:8px">🔎 Buscar en Google Maps</a>
+  <label>Ubicación</label><input id="zL" placeholder="-34.3141, -57.3489" autocomplete="off"><div id="zOk" class="lok"></div>${LOCTIP}
+  <div class="row" style="margin-top:12px"><button id="zSk">Saltar</button><button class="pri" id="zS">Guardar y seguir ›</button></div>`);
+  locHelper('zA','zL','zM','zOk');
+  $('zSk').onclick=()=>fixLoc(skip.concat(x.id));
+  $('zS').onclick=()=>{const p=parseLoc($('zL').value);if(!p){$('zOk').innerHTML='<span style="color:#dc2626">Primero buscá la ubicación o marcala en el mapa.</span>';return}
+    put('clients',x.id,{...D.clients[x.id],addr:$('zA').value.trim()||x.addr||'',lat:p.lat,lng:p.lng});syncOrdersLoc(x.id,p);toast('Guardado ✓');fixLoc(skip)};
+}
+function renderCli(){
+  const miss=Object.values(D.clients).filter(c=>!hasLL(c)).length;
+  $('cliFix').innerHTML=miss?`<div class="banner" style="display:flex;align-items:center;gap:10px"><span style="flex:1">⚠️ <b>${miss}</b> cliente${miss>1?'s':''} sin ubicación. Sin ella el recorrido no sale bien.</span><button class="sm pri" id="cliFixGo">Completar</button></div>`:'';
+  if($('cliFixGo'))$('cliFixGo').onclick=()=>fixLoc();
+  const qv=$('cliSearch').value.trim().toLowerCase();
+  const list=Object.entries(D.clients).map(([id,c])=>({id,...c})).filter(c=>!qv||(c.name+' '+(c.addr||'')).toLowerCase().includes(qv)).sort((a,b)=>a.name.localeCompare(b.name));
+  $('cliList').innerHTML=list.length?list.map(c=>`<div class="it"><div class="b"><div class="t">${c.prio?'<span class="star">★</span> ':''}${esc(c.name)}</div><div class="d">${esc(c.addr||'')}${hasLL(c)?'':' · ⚠️ sin ubicación'}</div></div><button class="sm" data-ec="${c.id}">✏️</button><button class="sm" data-dc="${c.id}">🗑</button></div>`).join(''):`<p class="cnt" style="padding:14px">${Object.keys(D.clients).length?'Sin resultados.':'Todavía no hay clientes.'}</p>`;
+}
+$('cliSearch').oninput=renderCli;$('cliNew').onclick=()=>clientForm(null,false);
+$('cliList').onclick=e=>{const ed=e.target.closest('[data-ec]'),dl=e.target.closest('[data-dc]');if(ed)clientForm(ed.dataset.ec,false);if(dl)confirmBtn(dl,'¿Borrar?',()=>del('clients',dl.dataset.dc))};
+
+/* ajustes */
+function loadCfg(){if(document.activeElement&&document.activeElement.closest&&document.activeElement.closest('#tab-cfg'))return;const c=cfg(),d=depot();$('depName').value=d.name;$('depLoc').value=fmtLL(d);$('cStart').value=c.start;$('cStopMin').value=c.stopMin;$('cSpeed').value=c.speed;$('cRet').value=c.ret}
+function saveCfg(patch){putCfg(Object.assign({},cfg(),patch));toast('Guardado')}
+$('depName').onchange=e=>saveCfg({depot:{...depot(),name:e.target.value.trim()||'Local'}});
+$('depLoc').onchange=e=>{const p=parseLoc(e.target.value);if(!p){$('depErr').textContent='No reconozco esa ubicación.';return}$('depErr').textContent='';saveCfg({depot:{...depot(),...p}})};
+[['cStart','start'],['cStopMin','stopMin'],['cSpeed','speed'],['cRet','ret']].forEach(([id,k])=>$(id).onchange=e=>saveCfg({[k]:e.target.value}));
+
+/* ============ CHOFER ============ */
+const myOrders=()=>ordersArr().filter(o=>o.driver===me&&o.status==='en_reparto');
+const myDoneToday=()=>ordersArr().filter(o=>o.driver===me&&(o.status==='entregado'||o.status==='no_entregado')&&o.doneAt>=todayStart());
+function myRoute(){
+  const mine=myOrders(),r=D.routes[slug(me)];let ids=(r&&r.ids||[]).filter(id=>mine.some(o=>o.id===id));
+  const missing=mine.filter(o=>!ids.includes(o.id));
+  if(missing.length&&!ids.length)ids=bestOrder(missing);
+  else missing.forEach(o=>{ // lo nuevo se mete en el mejor lugar del recorrido
+    if(!hasLL(o)){ids.push(o.id);return}
+    const lp=ids.map(id=>!!D.orders[id].prio).lastIndexOf(true),lo=o.prio?0:lp+1,hi=o.prio?lp+1:ids.length,ret=+cfg().ret===1;let best=hi,bc=1e18;
+    for(let p=lo;p<=hi;p++){const prev=p===0?depot():D.orders[ids[p-1]],next=p<ids.length?D.orders[ids[p]]:(ret?depot():null);if(!hasLL(prev))continue;
+      const add=dist(prev,o)+(next&&hasLL(next)?dist(o,next)-dist(prev,next):0);if(add<bc){bc=add;best=p}}
+    ids.splice(best,0,o.id)});
+  return ids.map(id=>({id,...D.orders[id]}));
+}
+function saveRoute(ids){put('routes',slug(me),{driver:me,ids,updated:Date.now()})}
+function timeline(list){const c=cfg(),sp=Math.max(1,+c.speed||30),sm=+c.stopMin||0;let prev=depot(),t=0,km=0;const eta={};
+  list.forEach(o=>{if(hasLL(o)){const d=dist(prev,o);km+=d;t+=d/sp*60;prev=o}eta[o.id]=t;t+=sm});
+  if(+c.ret===1&&list.length){const d=dist(prev,depot());km+=d;t+=d/sp*60}return{eta,km,total:t}}
+function clock(add){const[h,m]=(cfg().start||'08:00').split(':').map(Number),n=new Date(),base=Math.max(h*60+m,0);const t=Math.round(base+add);return String(Math.floor(t/60)%24).padStart(2,'0')+':'+String(t%60).padStart(2,'0')}
+const hm=m=>{const h=Math.floor(m/60),x=Math.round(m%60);return h?`${h} h ${String(x).padStart(2,'0')}`:`${x} min`};
+
+let choView='route',picked=new Set();
+function renderCho(){
+  const B=$('choBody'),F=$('choFab');
+  if(!me){B.innerHTML=`<div class="card" style="padding:16px"><h3 style="margin:0 0 6px">¿Quién maneja?</h3><p class="cnt">Escribí tu nombre una sola vez. Así la oficina ve qué pedidos llevás.</p><input id="meIn" placeholder="Ej: Juan" autocomplete="off"><button class="pri w" id="meOk" style="margin-top:12px">Entrar</button></div>`;F.innerHTML='';
+    $('meOk').onclick=()=>{const v=$('meIn').value.trim();if(!v)return;me=v;lset('rep3_me',me);render()};return}
+  const mine=myOrders();
+  if(choView==='pick'||!mine.length){
+    const pe=ordersArr().filter(o=>o.status==='pendiente').sort((a,b)=>(b.prio?1:0)-(a.prio?1:0)||a.created-b.created);
+    const dn=myDoneToday().length;
+    B.innerHTML=`<p class="cnt" style="margin:4px 2px 10px">Hola <b>${esc(me)}</b> · <a href="#" id="chMe" style="color:var(--mut)">cambiar</a>${dn?` · hoy hiciste ${dn}`:''}</p>
+      ${!mine.length&&dn&&!pe.length?`<div class="empty"><div>🎉</div><p><b>¡Terminaste todo!</b></p></div>`:''}
+      <div class="card"><div class="ch"><b>${mine.length?'Sumar pedidos':'Elegí los pedidos que llevás'}</b><button class="sm" id="pkAll">Todos</button></div>
+      ${pe.length?pe.map(o=>`<label class="it" style="cursor:pointer"><input type="checkbox" class="chk" data-tk="${o.id}" ${picked.has(o.id)?'checked':''}><div class="b"><div class="t">${o.prio?'<span class="star">★</span> ':''}${ic(o)}${esc(o.name)}</div><div class="d">${esc(o.addr||'')}${o.note?' · '+esc(o.note):''}</div></div></label>`).join(''):'<p class="cnt" style="padding:14px">No hay pedidos pendientes.</p>'}</div>`;
+    F.innerHTML=`${mine.length?'<button id="pkBack">Volver</button>':''}<button class="pri" id="pkGo" disabled>Llevar y armar recorrido</button>`;
+    const upd=()=>{picked=new Set([...B.querySelectorAll('[data-tk]:checked')].map(x=>x.dataset.tk));const n=B.querySelectorAll('[data-tk]:checked').length;$('pkGo').disabled=!n;$('pkGo').textContent=n?`Llevar ${n} y armar recorrido`:'Tildá los pedidos'};
+    B.onchange=upd;upd();
+    $('chMe').onclick=e=>{e.preventDefault();me='';lset('rep3_me','');render()};
+    $('pkAll').onclick=()=>{const all=[...B.querySelectorAll('[data-tk]')],on=all.some(x=>!x.checked);all.forEach(x=>x.checked=on);upd()};
+    if($('pkBack'))$('pkBack').onclick=()=>{choView='route';render()};
+    $('pkGo').onclick=()=>{
+      const ids=[...B.querySelectorAll('[data-tk]:checked')].map(x=>x.dataset.tk).filter(id=>D.orders[id]&&D.orders[id].status==='pendiente');
+      if(!ids.length){toast('Esos pedidos ya los tomó otro chofer');return}
+      const now=Date.now();ids.forEach(id=>put('orders',id,{...D.orders[id],status:'en_reparto',driver:me,takenAt:now}));
+      const cur=myRoute().filter(o=>!ids.includes(o.id)),neu=ids.map(id=>({id,...D.orders[id]}));
+      // re-ordenar todo lo que llevo: prioridades primero
+      saveRoute(bestOrder(cur.concat(neu)));picked=new Set();choView='route';toast('Recorrido armado ✓');render();
+    };
+    return;
+  }
+  const list=myRoute(),tl=timeline(list),seen=new Set(lget('rep3_seen',[])),fresh=list.filter(o=>o.sentByOffice&&!seen.has(o.id));
+  B.innerHTML=(fresh.length?`<div class="banner" style="background:#dbeafe;color:#1e3a8a"><b>🆕 La oficina te agregó:</b> ${fresh.map(o=>ic(o)+esc(o.name)).join(', ')}<br>Ya están en tu recorrido, en el mejor lugar. <button class="sm" id="seenOk" style="margin-top:6px">Entendido</button></div>`:'')+`<p class="cnt" style="margin:4px 2px 10px">🚚 <b>${esc(me)}</b> · ${list.length} pedidos · ${tl.km.toFixed(1)} km · ${hm(tl.total)}</p>
+   <div class="card"><div class="ch"><b>Mi recorrido</b><button class="sm" id="reAuto">🔄 Ordenar solo</button></div>
+   <div class="it" style="background:var(--bg)"><span class="n" style="background:#111">🏠</span><div class="b"><div class="t">Salida: ${esc(depot().name)}</div></div><span class="cnt">${esc(cfg().start)}</span></div>
+   ${list.map((o,i)=>`<div class="it"><span class="n">${i+1}</span><div class="b" data-op="${o.id}" style="cursor:pointer"><div class="t">${o.prio?'<span class="star">★</span> ':''}${ic(o)}${esc(o.name)}</div><div class="d">${clock(tl.eta[o.id])} · ${esc(o.addr||'')}${hasLL(o)?'':' · ⚠️ sin ubicación'}</div></div><div class="mv"><button data-up="${i}" ${i?'':'disabled'}>▲</button><button data-dn="${i}" ${i<list.length-1?'':'disabled'}>▼</button></div></div>`).join('')}
+   </div><p class="cnt" style="text-align:center">Con ▲▼ cambiás el orden: lo de arriba queda fijo y el resto se reacomoda solo.</p>
+   <button class="w" id="addMore">＋ Sumar más pedidos</button>`;
+  F.innerHTML=`<button class="ok" id="goDrv">▶ Empezar recorrido</button>`;
+  $('goDrv').onclick=()=>{$('drv').classList.add('on');keepAwake();renderDrv()};
+  $('addMore').onclick=()=>{choView='pick';render()};
+  if($('seenOk'))$('seenOk').onclick=()=>{lset('rep3_seen',[...seen,...fresh.map(o=>o.id)].slice(-300));render()};
+  $('reAuto').onclick=()=>{saveRoute(bestOrder(list));toast('Ordenado por el camino más corto')};
+}
+$('choBody').addEventListener('click',e=>{
+  const up=e.target.closest('[data-up]'),dn=e.target.closest('[data-dn]'),op=e.target.closest('[data-op]');
+  if(up||dn){const list=myRoute(),ids=list.map(o=>o.id),i=+(up||dn).dataset[up?'up':'dn'],j=up?i-1:i+1;[ids[i],ids[j]]=[ids[j],ids[i]];
+    const fix=Math.max(i,j),head=ids.slice(0,fix+1),rest=ids.slice(fix+1).map(id=>({id,...D.orders[id]})),last=D.orders[head[head.length-1]];
+    saveRoute(head.concat(bestOrder(rest,hasLL(last)?last:null)))}
+  if(op)stopSheet(op.dataset.op);
+});
+function stopSheet(id){const o=D.orders[id];
+  openSheet(`<h3><span>${ic(o)}${esc(o.name)}</span><button class="x" data-close>✕</button></h3><div class="cnt">${esc(o.addr||'')}${o.tel?' · 📞 '+esc(o.tel):''}${o.note?'<br>📝 '+esc(o.note):''}</div>
+  <div class="row" style="margin-top:12px"><a class="btn gm" href="${navUrl(o)}" target="_blank" rel="noopener">🧭 Google Maps</a><a class="btn wz" href="${wazeUrl(o)}" target="_blank" rel="noopener">Waze</a></div>
+  <button class="ok w" id="s1" style="margin-top:10px">✅ ${o.kind==='retiro'?'Retirado':'Entregado'}</button><button class="warn w" id="s2" style="margin-top:10px">No pude entregar</button>
+  ${hasLL(o)?'':'<button class="w" id="s4" style="margin-top:10px">📍 Estoy en la puerta: guardar ubicación</button><div id="s4m" class="lok"></div>'}
+  <button class="ghost w" id="s3" style="margin-top:6px">Devolver a pendientes</button>`);
+  if($('s4'))$('s4').onclick=()=>{$('s4m').innerHTML='<span class="cnt">Leyendo GPS…</span>';hereLoc(p=>{const c={lat:p.lat,lng:p.lng};put('orders',id,{...D.orders[id],...c});if(o.cid&&D.clients[o.cid])put('clients',o.cid,{...D.clients[o.cid],...c});$('s4m').innerHTML='<span style="color:var(--ok);font-weight:600">✓ Ubicación guardada para la próxima vez</span>';$('s4').remove()},m=>$('s4m').innerHTML=`<span style="color:#dc2626">${m}</span>`)};
+  $('s1').onclick=()=>{finish(id,'entregado');closeSheet()};$('s2').onclick=()=>failSheet(id,closeSheet);
+  $('s3').onclick=()=>{put('orders',id,{...D.orders[id],status:'pendiente',driver:'',takenAt:0});closeSheet();toast('Devuelto a pendientes')};
+}
+function finish(id,status,reason){put('orders',id,{...D.orders[id],status,reason:reason||'',doneAt:Date.now()});toast(status==='entregado'?'✅ Entregado':'Anotado')}
+function failSheet(id,after){
+  openSheet(`<h3><span>¿Qué pasó?</span><button class="x" data-close>✕</button></h3>${['No había nadie','Cerrado','No quiso recibir','Dirección equivocada','Otro motivo'].map(r=>`<button class="w" data-rs="${r}" style="margin-top:8px">${r}</button>`).join('')}`);
+  $('shp').onclick=e=>{const b=e.target.closest('[data-rs]');if(!b)return;finish(id,'no_entregado',b.dataset.rs);closeSheet();$('shp').onclick=null;if(after)after();renderDrv()};
+}
+
+/* modo manejo */
+$('drvClose').onclick=()=>{$('drv').classList.remove('on');render()};
+function renderDrv(){
+  if(!$('drv').classList.contains('on'))return;
+  const list=myRoute(),done=myDoneToday(),tot=list.length+done.length;
+  $('drvTop').textContent=`${done.length} de ${tot} hechos`;$('drvProg').style.width=(tot?done.length/tot*100:0)+'%';
+  if(!list.length){const back=+cfg().ret===1;
+    $('drvCard').innerHTML=`<div style="font-size:60px">🎉</div><div class="nm">¡Recorrido terminado!</div>${back?`<div class="ad">Volver a ${esc(depot().name)}</div>`:''}`;
+    $('drvBtns').innerHTML=(back?`<a class="btn gm" href="${navUrl(depot())}" target="_blank" rel="noopener">🧭 Volver al local</a>`:'')+`<button id="drvEnd">Cerrar</button>`;
+    $('drvEnd').onclick=()=>{$('drv').classList.remove('on');render()};return}
+  const o=list[0],tl=timeline(list);
+  $('drvCard').innerHTML=`<div class="k">${o.kind==='retiro'?'PRÓXIMO RETIRO':'PRÓXIMA ENTREGA'} · aprox. ${clock(tl.eta[o.id])}</div>${o.prio?'<div class="k" style="color:#d97706">★ PRIORIDAD</div>':''}<div class="nm">${ic(o)}${esc(o.name)}</div>${o.addr?`<div class="ad">${esc(o.addr)}</div>`:''}${o.note?`<div class="nt">📝 ${esc(o.note)}</div>`:''}${o.tel?`<div class="ad">📞 ${esc(o.tel)}</div>`:''}${list[1]?`<div class="k" style="margin-top:14px">Después: ${esc(list[1].name)}</div>`:''}`;
+  $('drvBtns').innerHTML=`<div class="row"><a class="btn gm" href="${navUrl(o)}" target="_blank" rel="noopener">🧭 Ir</a><a class="btn wz" href="${wazeUrl(o)}" target="_blank" rel="noopener" style="flex:0 0 30%">Waze</a></div><button class="ok" id="dOk">✅ ${o.kind==='retiro'?'Retirado':'Entregado'}</button><button class="warn sm" id="dNo" style="padding:12px;font-size:16px">No pude entregar</button>`;
+  $('dOk').onclick=()=>{finish(o.id,'entregado');renderDrv()};
+  $('dNo').onclick=()=>failSheet(o.id);
+}
+
+/* ============ render ============ */
+function render(){
+  if(mode==='ofi'){renderOfi();renderCli();renderMap()}else{renderCho();renderDrv()}
+  if(mode==='cho'&&me&&ready)gpsStart();else gpsStop();updGps();
+}
+setMode(mode);loadCfg();initData();
+setInterval(()=>{if(mode==='ofi'&&!$('sh').classList.contains('on')){if(tab==='ped')renderOfi();if(tab==='map')renderMap()}},30000);
+</script>
+</body>
+</html>
