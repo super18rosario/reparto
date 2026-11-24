@@ -86,6 +86,10 @@ label{display:block;font-size:13px;color:var(--mut);margin:10px 0 4px}
 .leaflet-container{font:inherit}
 </style>
 <meta name="theme-color" content="#c8102e">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-title" content="Reparto">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -635,6 +639,7 @@ function render(){
   if(mode==='cho'&&me&&ready)gpsStart();else gpsStop();updGps();
 }
 setMode(mode);loadCfg();initData();
+try{if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js')}catch(e){}
 setInterval(()=>{if(mode==='ofi'&&!$('sh').classList.contains('on')){if(tab==='ped')renderOfi();if(tab==='map')renderMap()}},30000);
 </script>
 </body>
