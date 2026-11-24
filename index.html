@@ -78,6 +78,9 @@ label{display:block;font-size:13px;color:var(--mut);margin:10px 0 4px}
 .sync{font-size:12px;opacity:.85}
 .dis{opacity:.45;pointer-events:none}
 .lok{font-size:14px;margin-top:6px}
+.d2{font-size:14px;margin-top:3px;color:#92400e;white-space:normal}
+@media (prefers-color-scheme:dark){.d2{color:#fbbf24}}
+textarea{width:100%;padding:12px;border:1px solid var(--ln);border-radius:10px;font:inherit;background:var(--card);color:var(--tx);resize:vertical}
 body.r-reparto .no-rep{display:none!important}
 #map{height:calc(100vh - 230px);min-height:320px;border-radius:14px;border:1px solid var(--ln)}
 .pmap{height:230px;border-radius:12px;margin-top:8px;border:1px solid var(--ln)}
@@ -194,6 +197,7 @@ function parseLoc(s){
   for(const p of[/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/,/[?&](?:q|query|ll|destination|daddr|center)=(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)/i,/@(-?\d+\.\d+),\s*(-?\d+\.\d+)/,/(-?\d{1,2}\.\d{3,})\s*[,;\s]\s*(-?\d{1,3}\.\d{3,})/]){m=s.match(p);if(m&&okLL(+m[1],+m[2]))return{lat:+m[1],lng:+m[2]}}
   return null;
 }
+const msg=o=>(o.hora||o.note)?`<div class="d2">${o.hora?'🕐 '+esc(o.hora)+(o.note?' · ':''):''}${o.note?'📝 '+esc(o.note):''}</div>`:'';
 const ic=o=>o&&o.kind==='retiro'?'📥 ':'';
 const hasLL=p=>p&&typeof p.lat==='number'&&typeof p.lng==='number';
 const fmtLL=p=>hasLL(p)?p.lat.toFixed(6)+', '+p.lng.toFixed(6):'';
@@ -302,6 +306,7 @@ async function loadAll(){
   ready=true;$('sync').textContent='· en vivo';render();loadCfg();
 }
 function notifyOrder(o,prev){
+  if(mode==='cho'&&me&&prev&&same(o.driver,me)&&o.status==='en_reparto'&&((o.note||'')!==(prev.note||'')||(o.hora||'')!==(prev.hora||''))&&(o.note||o.hora)){toast(`📝 Mensaje nuevo: ${o.name}${o.hora?' · 🕐 '+o.hora:''}${o.note?' · '+o.note:''}`,7000);try{navigator.vibrate&&navigator.vibrate([200,100,200,100,200])}catch(e){}}
   if(mode==='cho'&&me&&same(o.driver,me)&&o.status==='en_reparto'&&o.sentByOffice&&(!prev||!same(prev.driver,me)||prev.status!=='en_reparto')){toast(`🆕 La oficina te mandó: ${o.name}`,5000);try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e){}}
   if(mode==='ofi'&&prev&&prev.status!==o.status){
     if(o.status==='entregado')toast(`✅ ${nm(o.driver)||'Chofer'} entregó: ${o.name}`,4000);
@@ -419,7 +424,7 @@ function renderOfi(){
   $('kpis').innerHTML=`<div class="kpi"><b>${pe.length}</b><span>Pendientes</span></div><div class="kpi"><b>${go.length}</b><span>En camino</span></div><div class="kpi"><b style="color:var(--ok)">${ok.length}</b><span>Entregados</span></div><div class="kpi"><b style="color:#dc2626">${no.length}</b><span>No entregados</span></div>`;
   if(!all.length){$('ofiLists').innerHTML=`<div class="empty"><div>📦</div><p><b>No hay pedidos.</b></p><p>Tocá <b>＋ Nuevo pedido</b>. Los choferes eligen cuáles llevar desde su celular, en modo <b>Chofer</b>.</p></div>`;return}
   let h='';
-  if(pe.length)h+=`<div class="card"><div class="ch"><b>Pendientes</b><span class="cnt">esperando chofer</span></div>${pe.map(o=>`<div class="it"><button class="ghost sm" data-prio="${o.id}" title="Prioridad">${o.prio?'<span class="star">★</span>':'☆'}</button><div class="b"><div class="t">${ic(o)}${esc(o.name)}</div><div class="d">${esc(o.addr||'')}${o.note?' · '+esc(o.note):''}${hasLL(o)?'':' · ⚠️ sin ubicación'}</div></div><button class="ghost sm no-rep" data-delo="${o.id}">✕</button></div>`).join('')}</div>`;
+  if(pe.length)h+=`<div class="card"><div class="ch"><b>Pendientes</b><span class="cnt">esperando chofer</span></div>${pe.map(o=>`<div class="it"><button class="ghost sm" data-prio="${o.id}" title="Prioridad">${o.prio?'<span class="star">★</span>':'☆'}</button><div class="b"><div class="t">${ic(o)}${esc(o.name)}</div><div class="d">${esc(o.addr||'')}${hasLL(o)?'':' · ⚠️ sin ubicación'}</div>${msg(o)}</div><button class="ghost sm" data-eo="${o.id}" title="Mensaje">✏️</button><button class="ghost sm no-rep" data-delo="${o.id}">✕</button></div>`).join('')}</div>`;
   const drivers=[...new Set(go.map(o=>nm(o.driver)))];
   drivers.forEach(dn=>{const r=D.routes[slug(dn)],mine=all.filter(o=>same(o.driver,dn)&&(o.status==='en_reparto'||(o.status!=='pendiente'&&o.doneAt>=todayStart())));
     const ids=(r&&r.ids||[]).filter(id=>mine.some(o=>o.id===id));mine.forEach(o=>{if(!ids.includes(o.id))ids.push(o.id)});
@@ -429,7 +434,7 @@ function renderOfi(){
     const agoTxt=ago<1?'recién':ago<60?`hace ${ago} min`:`hace ${Math.floor(ago/60)} h ${ago%60} min`;
     let eta='';if(next&&hasLL(next)){const from=last&&hasLL(last)?last:depot();eta=hhmm(since+(dist(from,next)/Math.max(1,+cfg().speed||30)*60+(last?0:0))*60000+(last?(+cfg().stopMin||0)*60000:0))}
     const where=`<div style="padding:10px 14px;background:var(--bg);font-size:14px;line-height:1.5">${gpsLine(dn)}📍 ${last?`<b>${last.status==='entregado'?'Entregó en':'Pasó por'} ${esc(last.name)}</b> ${agoTxt}`:`<b>Salió del local</b> ${agoTxt}`}${next?`<br>➡️ Ahora va a <b>${esc(next.name)}</b>${next.addr?' ('+esc(next.addr)+')':''}${eta?` · llega aprox. ${eta}`:''}`:'<br>🏁 Terminó el recorrido'}${ago>=30&&next?'<br><span style="color:#d97706">⏱ Hace rato que no marca nada</span>':''}</div>`;
-    h+=`<div class="card"><div class="ch"><b>🚚 ${esc(dn)}</b><span class="cnt">${dn2}/${lst.length} hechos</span></div>${where}${lst.map((o,i)=>`<div class="it"><span class="n" style="background:${o.status==='entregado'?'var(--ok)':o.status==='no_entregado'?'#dc2626':'var(--blue)'}">${o.status==='entregado'?'✓':o.status==='no_entregado'?'!':i+1}</span><div class="b"><div class="t">${o.prio?'<span class="star">★</span> ':''}${ic(o)}${esc(o.name)}</div><div class="d">${esc(o.addr||'')}${o.reason?' · '+esc(o.reason):''}</div></div>${o.doneAt&&o.status!=='en_reparto'?`<span class="cnt">${hhmm(o.doneAt)}</span>`:''}</div>`).join('')}</div>`});
+    h+=`<div class="card"><div class="ch"><b>🚚 ${esc(dn)}</b><span class="cnt">${dn2}/${lst.length} hechos</span></div>${where}${lst.map((o,i)=>`<div class="it"><span class="n" style="background:${o.status==='entregado'?'var(--ok)':o.status==='no_entregado'?'#dc2626':'var(--blue)'}">${o.status==='entregado'?'✓':o.status==='no_entregado'?'!':i+1}</span><div class="b"><div class="t">${o.prio?'<span class="star">★</span> ':''}${ic(o)}${esc(o.name)}</div><div class="d">${esc(o.addr||'')}${o.reason?' · '+esc(o.reason):''}</div>${msg(o)}</div>${o.status==='en_reparto'?`<button class="ghost sm" data-eo="${o.id}" title="Mensaje">✏️</button>`:''}${o.doneAt&&o.status!=='en_reparto'?`<span class="cnt">${hhmm(o.doneAt)}</span>`:''}</div>`).join('')}</div>`});
   if(no.length)h+=`<div class="card"><div class="ch"><b>No entregados</b></div>${no.map(o=>`<div class="it"><div class="b"><div class="t">${ic(o)}${esc(o.name)}</div><div class="d">${esc(nm(o.driver)||'')} · ${esc(o.reason||'')} · ${o.doneAt?hhmm(o.doneAt):''}</div></div><button class="sm" data-back="${o.id}">↩ A pendientes</button></div>`).join('')}</div>`;
   if(ok.length)h+=`<div class="card"><div class="ch"><b>Entregados</b><button class="sm no-rep" id="clearOk">🧹 Limpiar</button></div>${ok.map(o=>`<div class="it"><div class="b"><div class="t">${ic(o)}${esc(o.name)}</div><div class="d">${esc(nm(o.driver)||'')}${o.note?' · '+esc(o.note):''}</div></div>${statusTag.entregado}<span class="cnt">${hhmm(o.doneAt)}</span></div>`).join('')}</div>`;
   $('ofiLists').innerHTML=h;
@@ -437,11 +442,20 @@ function renderOfi(){
 }
 $('ofiLists').onclick=e=>{
   if(e.target.closest('[data-gomap]')){e.preventDefault();goTab('map');return}
+  const eo=e.target.closest('[data-eo]');if(eo){editMsg(eo.dataset.eo);return}
   const p=e.target.closest('[data-prio]'),d=e.target.closest('[data-delo]'),b=e.target.closest('[data-back]');
   if(p){const o=D.orders[p.dataset.prio];put('orders',p.dataset.prio,{...o,prio:!o.prio})}
   if(d)confirmBtn(d,'¿Borrar?',()=>del('orders',d.dataset.delo));
   if(b){const o=D.orders[b.dataset.back];put('orders',b.dataset.back,{...o,status:'pendiente',driver:'',reason:'',doneAt:0})}
 };
+
+function editMsg(id){const o=D.orders[id];if(!o)return;
+  openSheet(`<h3><span>✏️ ${ic(o)}${esc(o.name)}</span><button class="x" data-close>✕</button></h3><p class="cnt">${esc(o.addr||'')}${o.driver?' · 🚚 '+esc(nm(o.driver)):''}</p>
+  <label>📝 Mensaje para el chofer</label><textarea id="emN" rows="3" placeholder="Ej: tocar timbre 2 · cobrar en efectivo">${esc(o.note||'')}</textarea>
+  <label>🕐 Hora</label><input id="emH" value="${esc(o.hora||'')}" placeholder="Ej: 10:30 · antes de las 11">
+  <button class="pri w" id="emS" style="margin-top:14px">Guardar</button>`);
+  $('emS').onclick=()=>{const cur=D.orders[id];if(!cur){closeSheet();return}put('orders',id,{...cur,note:$('emN').value.trim(),hora:$('emH').value.trim(),msgAt:Date.now()});closeSheet();toast(cur.driver&&cur.status==='en_reparto'?`Mensaje enviado a ${nm(cur.driver)} ✓`:'Guardado ✓')};
+  setTimeout(()=>$('emN').focus(),60)}
 
 /* nuevo pedido */
 function drivers(){return[...new Set([...Object.values(D.routes).map(r=>nm(r.driver)),...ordersArr().map(o=>nm(o.driver))].filter(Boolean))]}
@@ -450,23 +464,24 @@ function pickHtml(){const ds=drivers();if(pkTo&&!ds.includes(pkTo))pkTo='';
   return `<h3><span>Nuevo pedido</span><button class="x" data-close>✕</button></h3>
   <div class="row"><select id="pkKind"><option value="entrega" ${pkKind==='entrega'?'selected':''}>📦 Entrega</option><option value="retiro" ${pkKind==='retiro'?'selected':''}>📥 Retiro / levantar algo</option></select>
   <select id="pkTo"><option value="">Dejar en pendientes</option>${ds.map(d=>`<option value="${esc(d)}" ${pkTo===d?'selected':''}>🚚 Mandar a ${esc(d)}</option>`).join('')}</select></div>
-  <input id="pkNote" placeholder="Nota (opcional). Ej: retirar 3 cajas" style="margin-top:8px">
+  <label>📝 Mensaje para el chofer (opcional)</label><textarea id="pkNote" rows="2" placeholder="Ej: tocar timbre 2 · cobrar en efectivo · retirar 3 cajas"></textarea>
+  <label>🕐 Hora (opcional)</label><input id="pkHora" placeholder="Ej: 10:30 · antes de las 11 · después del mediodía">
   <input id="pkS" placeholder="🔍 Buscar cliente" style="margin-top:8px"><div id="pkL"></div>
   <div class="row" style="margin-top:12px"><button id="pkNew">＋ Cliente nuevo</button><button id="pkOnce">📍 Lugar de una vez</button></div>`}
-function orderOpts(){return{kind:($('pkKind')&&$('pkKind').value)||'entrega',to:($('pkTo')&&$('pkTo').value)||'',note:($('pkNote')&&$('pkNote').value.trim())||''}}
+function orderOpts(){return{kind:($('pkKind')&&$('pkKind').value)||'entrega',to:($('pkTo')&&$('pkTo').value)||'',note:($('pkNote')&&$('pkNote').value.trim())||'',hora:($('pkHora')&&$('pkHora').value.trim())||''}}
 function renderPick(){
   const qv=($('pkS').value||'').trim().toLowerCase(),busy=new Set(ordersArr().filter(o=>o.status==='pendiente'||o.status==='en_reparto').map(o=>o.cid));
   const list=Object.entries(D.clients).map(([id,c])=>({id,...c})).filter(c=>!qv||(c.name+' '+(c.addr||'')).toLowerCase().includes(qv)).sort((a,b)=>(b.uses||0)-(a.uses||0)||a.name.localeCompare(b.name));
   $('pkL').innerHTML=list.length?list.map(c=>`<div class="cl" data-pk="${c.id}"><div class="b"><div><b>${c.prio?'<span class="star">★</span> ':''}${esc(c.name)}</b></div><div class="d">${esc(c.addr||'')}${busy.has(c.id)?' · ya tiene un pedido activo':''}</div></div><span style="font-size:22px;color:var(--pri);font-weight:700">＋</span></div>`).join(''):`<p class="cnt" style="padding:14px 4px">${Object.keys(D.clients).length?'No encontré ese cliente.':'Todavía no hay clientes. Cargá el primero 👇'}</p>`;
 }
 function createOrder(base,opts){opts=opts||{};const id=uid(),now=Date.now();
-  put('orders',id,{cid:base.cid||'',name:base.name,addr:base.addr||'',tel:base.tel||'',lat:base.lat??null,lng:base.lng??null,prio:!!base.prio,kind:opts.kind||'entrega',note:opts.note||'',
+  put('orders',id,{cid:base.cid||'',name:base.name,addr:base.addr||'',tel:base.tel||'',lat:base.lat??null,lng:base.lng??null,prio:!!base.prio,kind:opts.kind||'entrega',note:opts.note||'',hora:opts.hora||'',
     status:opts.to?'en_reparto':'pendiente',driver:opts.to||'',takenAt:opts.to?now:0,sentByOffice:!!opts.to,created:now,doneAt:0,reason:''});
   toast(opts.to?`🚚 Enviado a ${opts.to} ✓`:'Pedido agregado ✓');return id}
 function newOrder(cid,opts){const c=D.clients[cid];put('clients',cid,{...c,uses:(c.uses||0)+1});return createOrder({cid,...c},opts)}
 $('addOrder').onclick=()=>{openSheet(pickHtml());renderPick();$('pkS').oninput=renderPick;
   $('pkKind').onchange=e=>pkKind=e.target.value;$('pkTo').onchange=e=>pkTo=e.target.value;
-  $('pkL').onclick=e=>{const p=e.target.closest('[data-pk]');if(!p)return;newOrder(p.dataset.pk,orderOpts());$('pkNote').value='';renderPick()};
+  $('pkL').onclick=e=>{const p=e.target.closest('[data-pk]');if(!p)return;newOrder(p.dataset.pk,orderOpts());$('pkNote').value='';$('pkHora').value='';renderPick()};
   $('pkNew').onclick=()=>clientForm(null,orderOpts());
   $('pkOnce').onclick=()=>onceForm(orderOpts())};
 function onceForm(opts){
@@ -577,7 +592,7 @@ function renderCho(){
     B.innerHTML=`<p class="cnt" style="margin:4px 2px 10px">Hola <b>${esc(me)}</b> · <a href="#" id="chMe" style="color:var(--mut)">cambiar</a>${dn?` · hoy hiciste ${dn}`:''}</p>
       ${!mine.length&&dn&&!pe.length?`<div class="empty"><div>🎉</div><p><b>¡Terminaste todo!</b></p></div>`:''}
       <div class="card"><div class="ch"><b>${mine.length?'Sumar pedidos':'Elegí los pedidos que llevás'}</b><button class="sm" id="pkAll">Todos</button></div>
-      ${pe.length?pe.map(o=>`<label class="it" style="cursor:pointer"><input type="checkbox" class="chk" data-tk="${o.id}" ${picked.has(o.id)?'checked':''}><div class="b"><div class="t">${o.prio?'<span class="star">★</span> ':''}${ic(o)}${esc(o.name)}</div><div class="d">${esc(o.addr||'')}${o.note?' · '+esc(o.note):''}</div></div></label>`).join(''):'<p class="cnt" style="padding:14px">No hay pedidos pendientes.</p>'}</div>`;
+      ${pe.length?pe.map(o=>`<label class="it" style="cursor:pointer"><input type="checkbox" class="chk" data-tk="${o.id}" ${picked.has(o.id)?'checked':''}><div class="b"><div class="t">${o.prio?'<span class="star">★</span> ':''}${ic(o)}${esc(o.name)}</div><div class="d">${esc(o.addr||'')}</div>${msg(o)}</div></label>`).join(''):'<p class="cnt" style="padding:14px">No hay pedidos pendientes.</p>'}</div>`;
     F.innerHTML=`${mine.length?'<button id="pkBack">Volver</button>':''}<button class="pri" id="pkGo" disabled>Llevar y armar recorrido</button>`;
     const upd=()=>{picked=new Set([...B.querySelectorAll('[data-tk]:checked')].map(x=>x.dataset.tk));const n=B.querySelectorAll('[data-tk]:checked').length;$('pkGo').disabled=!n;$('pkGo').textContent=n?`Llevar ${n} y armar recorrido`:'Tildá los pedidos'};
     B.onchange=upd;upd();
@@ -598,7 +613,7 @@ function renderCho(){
   B.innerHTML=(fresh.length?`<div class="banner" style="background:#dbeafe;color:#1e3a8a"><b>🆕 La oficina te agregó:</b> ${fresh.map(o=>ic(o)+esc(o.name)).join(', ')}<br>Ya están en tu recorrido, en el mejor lugar. <button class="sm" id="seenOk" style="margin-top:6px">Entendido</button></div>`:'')+`<p class="cnt" style="margin:4px 2px 10px">🚚 <b>${esc(me)}</b> · ${list.length} pedidos · ${tl.km.toFixed(1)} km · ${hm(tl.total)}</p>
    <div class="card"><div class="ch"><b>Mi recorrido</b><button class="sm" id="reAuto">🔄 Ordenar solo</button></div>
    <div class="it" style="background:var(--bg)"><span class="n" style="background:#111">🏠</span><div class="b"><div class="t">Salida: ${esc(depot().name)}</div></div><span class="cnt">${esc(cfg().start)}</span></div>
-   ${list.map((o,i)=>`<div class="it"><span class="n">${i+1}</span><div class="b" data-op="${o.id}" style="cursor:pointer"><div class="t">${o.prio?'<span class="star">★</span> ':''}${ic(o)}${esc(o.name)}</div><div class="d">${clock(tl.eta[o.id])} · ${esc(o.addr||'')}${hasLL(o)?'':' · ⚠️ sin ubicación'}</div></div><div class="mv"><button data-up="${i}" ${i?'':'disabled'}>▲</button><button data-dn="${i}" ${i<list.length-1?'':'disabled'}>▼</button></div></div>`).join('')}
+   ${list.map((o,i)=>`<div class="it"><span class="n">${i+1}</span><div class="b" data-op="${o.id}" style="cursor:pointer"><div class="t">${o.prio?'<span class="star">★</span> ':''}${ic(o)}${esc(o.name)}</div><div class="d">${clock(tl.eta[o.id])} · ${esc(o.addr||'')}${hasLL(o)?'':' · ⚠️ sin ubicación'}</div>${msg(o)}</div><div class="mv"><button data-up="${i}" ${i?'':'disabled'}>▲</button><button data-dn="${i}" ${i<list.length-1?'':'disabled'}>▼</button></div></div>`).join('')}
    </div><p class="cnt" style="text-align:center">Con ▲▼ cambiás el orden: lo de arriba queda fijo y el resto se reacomoda solo.</p>
    <button class="w" id="addMore">＋ Sumar más pedidos</button>`;
   F.innerHTML=`<button class="ok" id="goDrv">▶ Empezar recorrido</button>`;
@@ -615,7 +630,7 @@ $('choBody').addEventListener('click',e=>{
   if(op)stopSheet(op.dataset.op);
 });
 function stopSheet(id){const o=D.orders[id];
-  openSheet(`<h3><span>${ic(o)}${esc(o.name)}</span><button class="x" data-close>✕</button></h3><div class="cnt">${esc(o.addr||'')}${o.tel?' · 📞 '+esc(o.tel):''}${o.note?'<br>📝 '+esc(o.note):''}</div>
+  openSheet(`<h3><span>${ic(o)}${esc(o.name)}</span><button class="x" data-close>✕</button></h3><div class="cnt">${esc(o.addr||'')}${o.tel?' · 📞 '+esc(o.tel):''}</div>${msg(o)}
   <div class="row" style="margin-top:12px"><a class="btn gm" href="${navUrl(o)}" target="_blank" rel="noopener">🧭 Google Maps</a><a class="btn wz" href="${wazeUrl(o)}" target="_blank" rel="noopener">Waze</a></div>
   <button class="ok w" id="s1" style="margin-top:10px">✅ ${o.kind==='retiro'?'Retirado':'Entregado'}</button><button class="warn w" id="s2" style="margin-top:10px">No pude entregar</button>
   ${hasLL(o)?'':'<button class="w" id="s4" style="margin-top:10px">📍 Estoy en la puerta: guardar ubicación</button><div id="s4m" class="lok"></div>'}
@@ -641,7 +656,7 @@ function renderDrv(){
     $('drvBtns').innerHTML=(back?`<a class="btn gm" href="${navUrl(depot())}" target="_blank" rel="noopener">🧭 Volver al local</a>`:'')+`<button id="drvEnd">Cerrar</button>`;
     $('drvEnd').onclick=()=>{$('drv').classList.remove('on');render()};return}
   const o=list[0],tl=timeline(list);
-  $('drvCard').innerHTML=`<div class="k">${o.kind==='retiro'?'PRÓXIMO RETIRO':'PRÓXIMA ENTREGA'} · aprox. ${clock(tl.eta[o.id])}</div>${o.prio?'<div class="k" style="color:#d97706">★ PRIORIDAD</div>':''}<div class="nm">${ic(o)}${esc(o.name)}</div>${o.addr?`<div class="ad">${esc(o.addr)}</div>`:''}${o.note?`<div class="nt">📝 ${esc(o.note)}</div>`:''}${o.tel?`<div class="ad">📞 ${esc(o.tel)}</div>`:''}${list[1]?`<div class="k" style="margin-top:14px">Después: ${esc(list[1].name)}</div>`:''}`;
+  $('drvCard').innerHTML=`<div class="k">${o.kind==='retiro'?'PRÓXIMO RETIRO':'PRÓXIMA ENTREGA'} · aprox. ${clock(tl.eta[o.id])}</div>${o.prio?'<div class="k" style="color:#d97706">★ PRIORIDAD</div>':''}${o.hora?`<div class="nt" style="background:#dbeafe;color:#1e3a8a">🕐 ${esc(o.hora)}</div>`:''}<div class="nm">${ic(o)}${esc(o.name)}</div>${o.addr?`<div class="ad">${esc(o.addr)}</div>`:''}${o.note?`<div class="nt">📝 ${esc(o.note)}</div>`:''}${o.tel?`<div class="ad">📞 ${esc(o.tel)}</div>`:''}${list[1]?`<div class="k" style="margin-top:14px">Después: ${esc(list[1].name)}</div>`:''}`;
   $('drvBtns').innerHTML=`<div class="row"><a class="btn gm" href="${navUrl(o)}" target="_blank" rel="noopener">🧭 Ir</a><a class="btn wz" href="${wazeUrl(o)}" target="_blank" rel="noopener" style="flex:0 0 30%">Waze</a></div><button class="ok" id="dOk">✅ ${o.kind==='retiro'?'Retirado':'Entregado'}</button><button class="warn sm" id="dNo" style="padding:12px;font-size:16px">No pude entregar</button>`;
   $('dOk').onclick=()=>{finish(o.id,'entregado');renderDrv()};
   $('dNo').onclick=()=>failSheet(o.id);
