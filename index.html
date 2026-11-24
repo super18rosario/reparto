@@ -175,6 +175,8 @@ label{display:block;font-size:13px;color:var(--mut);margin:10px 0 4px}
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const nm=s=>String(s||'').trim().replace(/\s+/g,' ').toLowerCase().replace(/(^|\s)\S/g,c=>c.toUpperCase());
+const same=(a,b)=>!!a&&!!b&&nm(a)===nm(b);
 const slug=s=>String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'chofer';
 const lget=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}};
 const lset=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
@@ -206,7 +208,7 @@ async function geocode(q){
   return r.map(x=>({lat:+x.lat,lng:+x.lon,label:x.display_name.split(',').slice(0,3).join(','),house:!!(x.address&&x.address.house_number)||x.addresstype==='building'||x.type==='house'}));
 }
 function hereLoc(ok,bad){if(!navigator.geolocation){bad('Este celular no tiene GPS disponible.');return}
-  navigator.geolocation.getCurrentPosition(p=>ok({lat:p.coords.latitude,lng:p.coords.longitude,acc:p.coords.accuracy}),e=>bad(e.code===1?'No diste permiso de ubicación. Activalo en el navegador.':'No pude leer el GPS. Probá de nuevo.'),{enableHighAccuracy:true,timeout:20000,maximumAge:0})}
+  navigator.geolocation.getCurrentPosition(p=>{sendPos(p);return ok({lat:p.coords.latitude,lng:p.coords.longitude,acc:p.coords.accuracy})},e=>bad(e.code===1?'No diste permiso de ubicación. Activalo en el navegador.':'No pude leer el GPS. Probá de nuevo.'),{enableHighAccuracy:true,timeout:20000,maximumAge:0})}
 function locHelper(aId,lId,mId,okId){
   const A=$(aId),LI=$(lId),B=$(mId),O=$(okId);
   B.removeAttribute('href');B.removeAttribute('target');B.textContent='🔎 Buscar ubicación';
@@ -283,7 +285,7 @@ const SB_URL='https://swlbrygxqhcppcziajae.supabase.co',SB_KEY='sb_publishable_q
 const DEF_CFG={depot:{name:'Supermercado 18',lat:-34.3156,lng:-57.3520},start:'08:00',speed:30,stopMin:4,ret:1};
 const COLS=['clients','orders','routes','config','positions'];
 const D={clients:{},orders:{},routes:{},config:{},positions:{}};
-let SB=null,ready=false,chan=null;
+let SB=null,ready=false,chan=null,userEmail='',isDriver=false;
 const depot=()=>Object.assign({},DEF_CFG.depot,(D.config||{}).depot||{});
 const cfg=()=>Object.assign({},DEF_CFG,D.config||{});
 const q={};
@@ -299,10 +301,10 @@ async function loadAll(){
   ready=true;$('sync').textContent='· en vivo';render();loadCfg();
 }
 function notifyOrder(o,prev){
-  if(mode==='cho'&&me&&o.driver===me&&o.status==='en_reparto'&&o.sentByOffice&&(!prev||prev.driver!==me||prev.status!=='en_reparto')){toast(`🆕 La oficina te mandó: ${o.name}`,5000);try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e){}}
+  if(mode==='cho'&&me&&same(o.driver,me)&&o.status==='en_reparto'&&o.sentByOffice&&(!prev||!same(prev.driver,me)||prev.status!=='en_reparto')){toast(`🆕 La oficina te mandó: ${o.name}`,5000);try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e){}}
   if(mode==='ofi'&&prev&&prev.status!==o.status){
-    if(o.status==='entregado')toast(`✅ ${o.driver||'Chofer'} entregó: ${o.name}`,4000);
-    if(o.status==='no_entregado')toast(`⚠️ ${o.driver||'Chofer'} no pudo entregar: ${o.name}`,4000)}
+    if(o.status==='entregado')toast(`✅ ${nm(o.driver)||'Chofer'} entregó: ${o.name}`,4000);
+    if(o.status==='no_entregado')toast(`⚠️ ${nm(o.driver)||'Chofer'} no pudo entregar: ${o.name}`,4000)}
 }
 function onChange(pl){
   const c=pl.table;if(!COLS.includes(c))return;
@@ -320,7 +322,9 @@ function subscribe(){
 }
 function startSession(user){
   $('login').classList.remove('on');$('sync').textContent='· conectando…';
-  $('who').textContent='Entraste como: '+((user&&user.email)||'');
+  userEmail=((user&&user.email)||'').toLowerCase();isDriver=!!userEmail&&!/^oficina@/.test(userEmail);
+  $('who').textContent='Entraste como: '+userEmail;
+  if(isDriver&&!me){const n=userEmail.split('@')[0];if(n&&n!=='chofer'){me=nm(n);lset('rep3_me',me)}}
   loadAll().catch(e=>{console.error(e);$('sync').textContent='· sin conexión';toast('No se pudieron cargar los datos. Revisá internet.',4000)});
   subscribe();
 }
@@ -342,19 +346,19 @@ async function initData(){
   startSession(session.user);
 }
 $('logout').onclick=e=>confirmBtn(e.currentTarget,'¿Cerrar sesión?',async()=>{gpsStop();try{await SB.auth.signOut()}catch(x){}location.reload()});
-document.addEventListener('visibilitychange',()=>{if(document.hidden)return;if(SB&&ready)loadAll().catch(()=>{});if(mode==='cho'&&$('drv').classList.contains('on'))keepAwake()});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)return;if(SB&&ready)loadAll().catch(()=>{});if(isDriver&&me&&navigator.geolocation)navigator.geolocation.getCurrentPosition(p=>sendPos(p,true),()=>{},{enableHighAccuracy:true,timeout:20000});if(mode==='cho'&&$('drv').classList.contains('on'))keepAwake()});
 
 /* ============ GPS del chofer ============ */
 let gpsWatch=null,lastSent=0,lastPos=null,gpsState='',gpsWarned=false,wl=null;
-function updGps(){$('gps').textContent=mode!=='cho'?'':gpsState==='ok'?'· 📡 GPS':gpsState==='denied'?'· ⚠️ GPS apagado':gpsState==='err'?'· ⚠️ sin GPS':''}
+function updGps(){$('gps').textContent=!isDriver?'':gpsState==='ok'?'· 📡 GPS':gpsState==='denied'?'· ⚠️ GPS apagado':gpsState==='err'?'· ⚠️ sin GPS':''}
 function gpsStart(){
   if(gpsWatch!==null||!navigator.geolocation||!me||!SB)return;
-  gpsWatch=navigator.geolocation.watchPosition(p=>{gpsState='ok';updGps();
-    const c={lat:p.coords.latitude,lng:p.coords.longitude,acc:Math.round(p.coords.accuracy)},t=Date.now();
-    if(!lastPos||t-lastSent>20000||dist(lastPos,c)>0.06){lastSent=t;lastPos=c;const v={driver:me,...c,at:t};D.positions=Object.assign({},D.positions,{[slug(me)]:v});save('positions',slug(me),v)}},
+  gpsWatch=navigator.geolocation.watchPosition(p=>{gpsState='ok';updGps();sendPos(p)},
     e=>{gpsState=e.code===1?'denied':'err';updGps();if(e.code===1&&!gpsWarned){gpsWarned=true;toast('Activá la ubicación para que la oficina vea dónde estás.',5000)}},
     {enableHighAccuracy:true,maximumAge:10000,timeout:30000});
 }
+function sendPos(p,force){if(!isDriver||!me||!SB)return;const c={lat:p.coords.latitude,lng:p.coords.longitude,acc:Math.round(p.coords.accuracy)},t=Date.now();
+  if(force||!lastPos||t-lastSent>20000||dist(lastPos,c)>0.06){lastSent=t;lastPos=c;const v={driver:me,...c,at:t};D.positions=Object.assign({},D.positions,{[slug(me)]:v});save('positions',slug(me),v)}}
 function gpsStop(){if(gpsWatch!==null){navigator.geolocation.clearWatch(gpsWatch);gpsWatch=null}}
 async function keepAwake(){try{if('wakeLock' in navigator&&!wl){wl=await navigator.wakeLock.request('screen');wl.addEventListener('release',()=>wl=null)}}catch(e){}}
 
@@ -373,7 +377,7 @@ function renderMap(){
   const ST={pendiente:'Pendiente',en_reparto:'En camino',entregado:'Entregado',no_entregado:'No entregado'};
   ordersArr().filter(o=>hasLL(o)&&(o.status==='pendiente'||o.status==='en_reparto'||o.doneAt>=todayStart())).forEach(o=>{
     const col=o.status==='entregado'?'#16a34a':o.status==='no_entregado'?'#dc2626':o.status==='en_reparto'?'#2563eb':'#9ca3af';
-    window.L.circleMarker([o.lat,o.lng],{radius:9,color:'#fff',weight:2,fillColor:col,fillOpacity:1}).bindPopup(`<b>${esc(o.name)}</b><br>${esc(o.addr||'')}<br>${o.driver?esc(o.driver)+' · ':''}${ST[o.status]||''}`).addTo(olayer);pts.push([o.lat,o.lng])});
+    window.L.circleMarker([o.lat,o.lng],{radius:9,color:'#fff',weight:2,fillColor:col,fillOpacity:1}).bindPopup(`<b>${esc(o.name)}</b><br>${esc(o.addr||'')}<br>${o.driver?esc(nm(o.driver))+' · ':''}${ST[o.status]||''}`).addTo(olayer);pts.push([o.lat,o.lng])});
   const info=[];
   Object.values(D.positions).forEach(p=>{if(!p||!hasLL(p)||!p.at||p.at<todayStart())return;const m=agoMin(p.at),old=m>=10;
     window.L.marker([p.lat,p.lng],{icon:emo('🚚',old)}).bindTooltip(`${esc(p.driver)} · ${agoTxt(m)}`,{permanent:true,direction:'top',offset:[0,-16]}).addTo(olayer);pts.push([p.lat,p.lng]);
@@ -384,7 +388,7 @@ function renderMap(){
 }
 
 /* ============ modo ============ */
-let mode=lget('rep3_mode','ofi'),me=lget('rep3_me',''),tab='ped';
+let mode=lget('rep3_mode','ofi'),me=nm(lget('rep3_me','')),tab='ped';
 function setMode(m){mode=m;lset('rep3_mode',m);document.querySelectorAll('.mode button').forEach(b=>b.classList.toggle('on',b.dataset.mode===m));$('ofi').classList.toggle('hidden',m!=='ofi');$('cho').classList.toggle('hidden',m!=='cho');render()}
 document.querySelectorAll('.mode button').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
 function goTab(t){tab=t;document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x.dataset.tab===t));['ped','map','cli','cfg'].forEach(k=>$('tab-'+k).classList.toggle('hidden',k!==t));$('ofiFab').classList.toggle('hidden',t!=='ped');renderMap()}
@@ -406,8 +410,8 @@ function renderOfi(){
   if(!all.length){$('ofiLists').innerHTML=`<div class="empty"><div>📦</div><p><b>No hay pedidos.</b></p><p>Tocá <b>＋ Nuevo pedido</b>. Los choferes eligen cuáles llevar desde su celular, en modo <b>Chofer</b>.</p></div>`;return}
   let h='';
   if(pe.length)h+=`<div class="card"><div class="ch"><b>Pendientes</b><span class="cnt">esperando chofer</span></div>${pe.map(o=>`<div class="it"><button class="ghost sm" data-prio="${o.id}" title="Prioridad">${o.prio?'<span class="star">★</span>':'☆'}</button><div class="b"><div class="t">${ic(o)}${esc(o.name)}</div><div class="d">${esc(o.addr||'')}${o.note?' · '+esc(o.note):''}${hasLL(o)?'':' · ⚠️ sin ubicación'}</div></div><button class="ghost sm" data-delo="${o.id}">✕</button></div>`).join('')}</div>`;
-  const drivers=[...new Set(go.map(o=>o.driver))];
-  drivers.forEach(dn=>{const r=D.routes[slug(dn)],mine=all.filter(o=>o.driver===dn&&(o.status==='en_reparto'||(o.status!=='pendiente'&&o.doneAt>=todayStart())));
+  const drivers=[...new Set(go.map(o=>nm(o.driver)))];
+  drivers.forEach(dn=>{const r=D.routes[slug(dn)],mine=all.filter(o=>same(o.driver,dn)&&(o.status==='en_reparto'||(o.status!=='pendiente'&&o.doneAt>=todayStart())));
     const ids=(r&&r.ids||[]).filter(id=>mine.some(o=>o.id===id));mine.forEach(o=>{if(!ids.includes(o.id))ids.push(o.id)});
     const lst=ids.map(id=>mine.find(o=>o.id===id)),dn2=lst.filter(o=>o.status!=='en_reparto').length;
     const last=lst.filter(o=>o.status!=='en_reparto').sort((a,b)=>b.doneAt-a.doneAt)[0],next=lst.find(o=>o.status==='en_reparto');
@@ -416,8 +420,8 @@ function renderOfi(){
     let eta='';if(next&&hasLL(next)){const from=last&&hasLL(last)?last:depot();eta=hhmm(since+(dist(from,next)/Math.max(1,+cfg().speed||30)*60+(last?0:0))*60000+(last?(+cfg().stopMin||0)*60000:0))}
     const where=`<div style="padding:10px 14px;background:var(--bg);font-size:14px;line-height:1.5">${gpsLine(dn)}📍 ${last?`<b>${last.status==='entregado'?'Entregó en':'Pasó por'} ${esc(last.name)}</b> ${agoTxt}`:`<b>Salió del local</b> ${agoTxt}`}${next?`<br>➡️ Ahora va a <b>${esc(next.name)}</b>${next.addr?' ('+esc(next.addr)+')':''}${eta?` · llega aprox. ${eta}`:''}`:'<br>🏁 Terminó el recorrido'}${ago>=30&&next?'<br><span style="color:#d97706">⏱ Hace rato que no marca nada</span>':''}</div>`;
     h+=`<div class="card"><div class="ch"><b>🚚 ${esc(dn)}</b><span class="cnt">${dn2}/${lst.length} hechos</span></div>${where}${lst.map((o,i)=>`<div class="it"><span class="n" style="background:${o.status==='entregado'?'var(--ok)':o.status==='no_entregado'?'#dc2626':'var(--blue)'}">${o.status==='entregado'?'✓':o.status==='no_entregado'?'!':i+1}</span><div class="b"><div class="t">${o.prio?'<span class="star">★</span> ':''}${ic(o)}${esc(o.name)}</div><div class="d">${esc(o.addr||'')}${o.reason?' · '+esc(o.reason):''}</div></div>${o.doneAt&&o.status!=='en_reparto'?`<span class="cnt">${hhmm(o.doneAt)}</span>`:''}</div>`).join('')}</div>`});
-  if(no.length)h+=`<div class="card"><div class="ch"><b>No entregados</b></div>${no.map(o=>`<div class="it"><div class="b"><div class="t">${ic(o)}${esc(o.name)}</div><div class="d">${esc(o.driver||'')} · ${esc(o.reason||'')} · ${o.doneAt?hhmm(o.doneAt):''}</div></div><button class="sm" data-back="${o.id}">↩ A pendientes</button></div>`).join('')}</div>`;
-  if(ok.length)h+=`<div class="card"><div class="ch"><b>Entregados</b><button class="sm" id="clearOk">🧹 Limpiar</button></div>${ok.map(o=>`<div class="it"><div class="b"><div class="t">${ic(o)}${esc(o.name)}</div><div class="d">${esc(o.driver||'')}${o.note?' · '+esc(o.note):''}</div></div>${statusTag.entregado}<span class="cnt">${hhmm(o.doneAt)}</span></div>`).join('')}</div>`;
+  if(no.length)h+=`<div class="card"><div class="ch"><b>No entregados</b></div>${no.map(o=>`<div class="it"><div class="b"><div class="t">${ic(o)}${esc(o.name)}</div><div class="d">${esc(nm(o.driver)||'')} · ${esc(o.reason||'')} · ${o.doneAt?hhmm(o.doneAt):''}</div></div><button class="sm" data-back="${o.id}">↩ A pendientes</button></div>`).join('')}</div>`;
+  if(ok.length)h+=`<div class="card"><div class="ch"><b>Entregados</b><button class="sm" id="clearOk">🧹 Limpiar</button></div>${ok.map(o=>`<div class="it"><div class="b"><div class="t">${ic(o)}${esc(o.name)}</div><div class="d">${esc(nm(o.driver)||'')}${o.note?' · '+esc(o.note):''}</div></div>${statusTag.entregado}<span class="cnt">${hhmm(o.doneAt)}</span></div>`).join('')}</div>`;
   $('ofiLists').innerHTML=h;
   const c=$('clearOk');if(c)c.onclick=e=>confirmBtn(e.currentTarget,'¿Borrar entregados?',()=>{ok.forEach(o=>del('orders',o.id));toast('Listo')});
 }
@@ -430,7 +434,7 @@ $('ofiLists').onclick=e=>{
 };
 
 /* nuevo pedido */
-function drivers(){return[...new Set([...Object.values(D.routes).map(r=>r.driver),...ordersArr().map(o=>o.driver)].filter(Boolean))]}
+function drivers(){return[...new Set([...Object.values(D.routes).map(r=>nm(r.driver)),...ordersArr().map(o=>nm(o.driver))].filter(Boolean))]}
 let pkTo='',pkKind='entrega';
 function pickHtml(){const ds=drivers();if(pkTo&&!ds.includes(pkTo))pkTo='';
   return `<h3><span>Nuevo pedido</span><button class="x" data-close>✕</button></h3>
@@ -530,8 +534,8 @@ $('depLoc').onchange=e=>{const p=parseLoc(e.target.value);if(!p){$('depErr').tex
 [['cStart','start'],['cStopMin','stopMin'],['cSpeed','speed'],['cRet','ret']].forEach(([id,k])=>$(id).onchange=e=>saveCfg({[k]:e.target.value}));
 
 /* ============ CHOFER ============ */
-const myOrders=()=>ordersArr().filter(o=>o.driver===me&&o.status==='en_reparto');
-const myDoneToday=()=>ordersArr().filter(o=>o.driver===me&&(o.status==='entregado'||o.status==='no_entregado')&&o.doneAt>=todayStart());
+const myOrders=()=>ordersArr().filter(o=>same(o.driver,me)&&o.status==='en_reparto');
+const myDoneToday=()=>ordersArr().filter(o=>same(o.driver,me)&&(o.status==='entregado'||o.status==='no_entregado')&&o.doneAt>=todayStart());
 function myRoute(){
   const mine=myOrders(),r=D.routes[slug(me)];let ids=(r&&r.ids||[]).filter(id=>mine.some(o=>o.id===id));
   const missing=mine.filter(o=>!ids.includes(o.id));
@@ -555,7 +559,7 @@ let choView='route',picked=new Set();
 function renderCho(){
   const B=$('choBody'),F=$('choFab');
   if(!me){B.innerHTML=`<div class="card" style="padding:16px"><h3 style="margin:0 0 6px">¿Quién maneja?</h3><p class="cnt">Escribí tu nombre una sola vez. Así la oficina ve qué pedidos llevás.</p><input id="meIn" placeholder="Ej: Juan" autocomplete="off"><button class="pri w" id="meOk" style="margin-top:12px">Entrar</button></div>`;F.innerHTML='';
-    $('meOk').onclick=()=>{const v=$('meIn').value.trim();if(!v)return;me=v;lset('rep3_me',me);render()};return}
+    $('meOk').onclick=()=>{const v=$('meIn').value.trim();if(!v)return;me=nm(v);lset('rep3_me',me);render()};return}
   const mine=myOrders();
   if(choView==='pick'||!mine.length){
     const pe=ordersArr().filter(o=>o.status==='pendiente').sort((a,b)=>(b.prio?1:0)-(a.prio?1:0)||a.created-b.created);
@@ -636,7 +640,7 @@ function renderDrv(){
 /* ============ render ============ */
 function render(){
   if(mode==='ofi'){renderOfi();renderCli();renderMap()}else{renderCho();renderDrv()}
-  if(mode==='cho'&&me&&ready)gpsStart();else gpsStop();updGps();
+  if(isDriver&&me&&ready)gpsStart();else gpsStop();updGps();
 }
 setMode(mode);loadCfg();initData();
 try{if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js')}catch(e){}
