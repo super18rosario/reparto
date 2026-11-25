@@ -727,11 +727,13 @@ function myRoute(){
     ids.splice(best,0,o.id)});
   return ids.map(id=>({id,...D.orders[id]}));
 }
-function saveRoute(ids){put('routes',slug(me),{driver:me,ids,updated:Date.now()})}
-function timeline(list){const c=cfg(),sp=Math.max(1,+c.speed||30),sm=+c.stopMin||0;let prev=depot(),t=0,km=0;const eta={};
+function saveRoute(ids,extra){put('routes',slug(me),{...(D.routes[slug(me)]||{}),driver:me,ids,updated:Date.now(),...(extra||{})})}
+function myStart(){const r=D.routes[slug(me)];return r&&r.startedAt>=todayStart()?r.startedAt:0}
+function timeline(list){const c=cfg(),sp=Math.max(1,+c.speed||30),sm=+c.stopMin||0,st=myStart();let prev=depot(),t=0,km=0;const eta={};
+  if(st){const last=myDoneToday().filter(o=>o.doneAt>=st&&hasLL(o)).sort((a,b)=>b.doneAt-a.doneAt)[0];if(last)prev=last}
   list.forEach(o=>{if(hasLL(o)){const d=dist(prev,o);km+=d;t+=d/sp*60;prev=o}eta[o.id]=t;t+=sm});
   if(+c.ret===1&&list.length){const d=dist(prev,depot());km+=d;t+=d/sp*60}return{eta,km,total:t}}
-function clock(add){const[h,m]=(cfg().start||'08:00').split(':').map(Number),n=new Date(),base=Math.max(h*60+m,0);const t=Math.round(base+add);return String(Math.floor(t/60)%24).padStart(2,'0')+':'+String(t%60).padStart(2,'0')}
+function clock(add){return hhmm(Date.now()+Math.round(add)*60000)}
 const hm=m=>{const h=Math.floor(m/60),x=Math.round(m%60);return h?`${h} h ${String(x).padStart(2,'0')}`:`${x} min`};
 
 let choView='route',picked=new Set();
@@ -759,19 +761,19 @@ function renderCho(){
       const now=Date.now();ids.forEach(id=>put('orders',id,{...D.orders[id],status:'en_reparto',driver:me,takenAt:now}));
       const cur=myRoute().filter(o=>!ids.includes(o.id)),neu=ids.map(id=>({id,...D.orders[id]}));
       // re-ordenar todo lo que llevo: prioridades primero
-      saveRoute(bestOrder(cur.concat(neu)));picked=new Set();choView='route';toast('Recorrido armado ✓');render();
+      saveRoute(bestOrder(cur.concat(neu)),cur.length?{}:{startedAt:0});picked=new Set();choView='route';toast('Recorrido armado ✓');render();
     };
     return;
   }
   const list=myRoute(),tl=timeline(list),seen=new Set(lget('rep3_seen',[])),fresh=list.filter(o=>o.sentByOffice&&!seen.has(o.id));
   B.innerHTML=(fresh.length?`<div class="banner" style="background:#dbeafe;color:#1e3a8a"><b>🆕 La oficina te agregó:</b> ${fresh.map(o=>ic(o)+esc(o.name)).join(', ')}<br>Ya están en tu recorrido, en el mejor lugar. <button class="sm" id="seenOk" style="margin-top:6px">Entendido</button></div>`:'')+`<p class="cnt" style="margin:4px 2px 10px">🚚 <b>${esc(me)}</b> · ${list.length} pedidos · ${tl.km.toFixed(1)} km · ${hm(tl.total)}</p>
    <div class="card"><div class="ch"><b>Mi recorrido</b><button class="sm" id="reAuto">🔄 Ordenar solo</button></div>
-   <div class="it" style="background:var(--bg)"><span class="n" style="background:#111">🏠</span><div class="b"><div class="t">Salida: ${esc(depot().name)}</div></div><span class="cnt">${esc(cfg().start)}</span></div>
+   <div class="it" style="background:var(--bg)"><span class="n" style="background:#111">🏠</span><div class="b"><div class="t">Salida: ${esc(depot().name)}</div></div><span class="cnt">${myStart()?'salió '+hhmm(myStart()):'sin salir'}</span></div>
    ${list.map((o,i)=>`<div class="it"><span class="n">${i+1}</span><div class="b" data-op="${o.id}" style="cursor:pointer"><div class="t">${o.prio?'<span class="star">★</span> ':''}${ic(o)}${esc(o.name)}</div><div class="d">${clock(tl.eta[o.id])} · ${esc(o.addr||'')}${hasLL(o)?'':' · ⚠️ sin ubicación'}</div>${msg(o)}</div><div class="mv"><button data-up="${i}" ${i?'':'disabled'}>▲</button><button data-dn="${i}" ${i<list.length-1?'':'disabled'}>▼</button></div></div>`).join('')}
    </div><p class="cnt" style="text-align:center">Con ▲▼ cambiás el orden: lo de arriba queda fijo y el resto se reacomoda solo.</p>
    <button class="w" id="addMore">＋ Sumar más pedidos</button>`;
   F.innerHTML=`<button class="ok" id="goDrv">▶ Empezar recorrido</button>`;
-  $('goDrv').onclick=()=>{$('drv').classList.add('on');keepAwake();renderDrv()};
+  $('goDrv').onclick=()=>{if(!myStart())saveRoute(list.map(o=>o.id),{startedAt:Date.now()});$('drv').classList.add('on');keepAwake();renderDrv()};
   $('addMore').onclick=()=>{choView='pick';render()};
   if($('seenOk'))$('seenOk').onclick=()=>{lset('rep3_seen',[...seen,...fresh.map(o=>o.id)].slice(-300));render()};
   $('reAuto').onclick=()=>{saveRoute(bestOrder(list));toast('Ordenado por el camino más corto')};
@@ -823,7 +825,7 @@ function render(){
 }
 setMode(mode);loadCfg();initData();
 try{if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js')}catch(e){}
-setInterval(()=>{if(mode==='ofi'&&!$('sh').classList.contains('on')){if(tab==='ped')renderOfi();if(tab==='map')renderMap()}},30000);
+setInterval(()=>{if($('sh').classList.contains('on'))return;if(mode==='ofi'){if(tab==='ped')renderOfi();if(tab==='map')renderMap()}else{renderCho();renderDrv()}},30000);
 </script>
 </body>
 </html>
