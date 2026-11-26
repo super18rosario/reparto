@@ -347,6 +347,7 @@ async function loadAll(){
   applyPQ();ready=true;updSync();maybeDraft();lset('rep3_cache',{clients:D.clients,orders:D.orders,routes:D.routes,config:D.config});render();loadCfg();flush();
 }
 function notifyOrder(o,prev){
+  if(mode==='cho'&&me&&prev&&same(prev.driver,me)&&prev.status==='en_reparto'&&(o.status==='pendiente'||!same(o.driver,me))&&o.status!=='entregado'&&o.status!=='no_entregado'){toast(`↩ La oficina te sacó: ${o.name}`,6000);try{navigator.vibrate&&navigator.vibrate([300,100,300])}catch(e){}}
   if(mode==='cho'&&me&&prev&&same(o.driver,me)&&o.status==='en_reparto'&&((o.note||'')!==(prev.note||'')||(o.hora||'')!==(prev.hora||''))&&(o.note||o.hora)){toast(`📝 Mensaje nuevo: ${o.name}${o.hora?' · 🕐 '+o.hora:''}${o.note?' · '+o.note:''}`,7000);try{navigator.vibrate&&navigator.vibrate([200,100,200,100,200])}catch(e){}}
   if(mode==='cho'&&me&&same(o.driver,me)&&o.status==='en_reparto'&&o.sentByOffice&&(!prev||!same(prev.driver,me)||prev.status!=='en_reparto')){toast(`🆕 La oficina te mandó: ${o.name}`,5000);try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e){}}
   if(mode==='ofi'&&prev&&prev.status!==o.status){
@@ -567,7 +568,7 @@ function renderOfi(){
     const agoTxt=ago<1?'recién':ago<60?`hace ${ago} min`:`hace ${Math.floor(ago/60)} h ${ago%60} min`;
     let eta='';if(next&&hasLL(next)){const from=last&&hasLL(last)?last:depot();eta=hhmm(since+(dist(from,next)/Math.max(1,+cfg().speed||30)*60+(last?0:0))*60000+(last?(+cfg().stopMin||0)*60000:0))}
     const where=`<div style="padding:10px 14px;background:var(--bg);font-size:14px;line-height:1.5">${gpsLine(dn)}📍 ${last?`<b>${last.status==='entregado'?'Entregó en':'Pasó por'} ${esc(last.name)}</b> ${agoTxt}`:`<b>Salió del local</b> ${agoTxt}`}${next?`<br>➡️ Ahora va a <b>${esc(next.name)}</b>${next.addr?' ('+esc(next.addr)+')':''}${eta?` · llega aprox. ${eta}`:''}`:'<br>🏁 Terminó el recorrido'}${ago>=30&&next?'<br><span style="color:#d97706">⏱ Hace rato que no marca nada</span>':''}</div>`;
-    h+=`<div class="card"><div class="ch"><b>🚚 ${esc(dn)}</b><span class="cnt">${dn2}/${lst.length} hechos</span></div>${where}${lst.map((o,i)=>`<div class="it"><span class="n" style="background:${o.status==='entregado'?'var(--ok)':o.status==='no_entregado'?'#dc2626':'var(--blue)'}">${o.status==='entregado'?'✓':o.status==='no_entregado'?'!':i+1}</span><div class="b"><div class="t">${o.prio?'<span class="star">★</span> ':''}${ic(o)}${esc(o.name)}</div><div class="d">${esc(o.addr||'')}${o.reason?' · '+esc(o.reason):''}</div>${msg(o)}</div>${o.status==='en_reparto'?`<button class="ghost sm" data-eo="${o.id}" title="Mensaje">✏️</button>`:''}${o.doneAt&&o.status!=='en_reparto'?`<span class="cnt">${hhmm(o.doneAt)}</span>`:''}</div>`).join('')}</div>`});
+    h+=`<div class="card"><div class="ch"><b>🚚 ${esc(dn)}</b><span class="cnt">${dn2}/${lst.length} hechos</span></div>${where}${lst.map((o,i)=>`<div class="it"><span class="n" style="background:${o.status==='entregado'?'var(--ok)':o.status==='no_entregado'?'#dc2626':'var(--blue)'}">${o.status==='entregado'?'✓':o.status==='no_entregado'?'!':i+1}</span><div class="b"><div class="t">${o.prio?'<span class="star">★</span> ':''}${ic(o)}${esc(o.name)}</div><div class="d">${esc(o.addr||'')}${o.reason?' · '+esc(o.reason):''}</div>${msg(o)}</div>${o.status==='en_reparto'?`<button class="ghost sm" data-eo="${o.id}" title="Mensaje o cambiar chofer">✏️</button><button class="ghost sm" data-back="${o.id}" title="Devolver a pendientes">↩</button>`:''}${o.doneAt&&o.status!=='en_reparto'?`<span class="cnt">${hhmm(o.doneAt)}</span>`:''}</div>`).join('')}</div>`});
   if(no.length)h+=`<div class="card"><div class="ch"><b>No entregados</b></div>${no.map(o=>`<div class="it"><div class="b"><div class="t">${ic(o)}${esc(o.name)}</div><div class="d">${esc(nm(o.driver)||'')} · ${esc(o.reason||'')} · ${o.doneAt?(o.doneAt<t0?fmtDay(o.doneAt)+' ':'')+hhmm(o.doneAt):''}</div></div><button class="sm" data-back="${o.id}">↩ A pendientes</button></div>`).join('')}</div>`;
   if(ok.length)h+=`<div class="card"><div class="ch"><b>Entregados hoy</b><span class="cnt">${ok.length}</span></div>${ok.map(o=>`<div class="it"><div class="b"><div class="t">${ic(o)}${esc(o.name)}</div><div class="d">${esc(nm(o.driver)||'')}</div>${msg(o)}</div>${statusTag.entregado}<span class="cnt">${hhmm(o.doneAt)}</span></div>`).join('')}</div>`;
   h+=histHtml(all);
@@ -599,15 +600,20 @@ $('ofiLists').onclick=e=>{
   const p=e.target.closest('[data-prio]'),d=e.target.closest('[data-delo]'),b=e.target.closest('[data-back]');
   if(p){const o=D.orders[p.dataset.prio];put('orders',p.dataset.prio,{...o,prio:!o.prio})}
   if(d)confirmBtn(d,'¿Borrar?',()=>del('orders',d.dataset.delo));
-  if(b){const o=D.orders[b.dataset.back];put('orders',b.dataset.back,{...o,status:'pendiente',driver:'',reason:'',doneAt:0})}
+  if(b)confirmBtn(b,'¿A pendientes?',()=>{const id=b.dataset.back,o=D.orders[id];if(!o)return;put('orders',id,{...o,status:'pendiente',driver:'',reason:'',doneAt:0,takenAt:0,sentByOffice:false});toast('↩ Volvió a pendientes: otro chofer lo puede tomar')})
 };
 
 function editMsg(id){const o=D.orders[id];if(!o)return;
   openSheet(`<h3><span>✏️ ${ic(o)}${esc(o.name)}</span><button class="x" data-close>✕</button></h3><p class="cnt">${esc(o.addr||'')}${o.driver?' · 🚚 '+esc(nm(o.driver)):''}</p>
   <label>📝 Mensaje para el chofer</label><textarea id="emN" rows="3" placeholder="Ej: tocar timbre 2 · cobrar en efectivo">${esc(o.note||'')}</textarea>
   <label>🕐 Hora</label><input id="emH" value="${esc(o.hora||'')}" placeholder="Ej: 10:30 · antes de las 11">
+  ${(o.status==='pendiente'||o.status==='en_reparto')?`<label>🚚 Chofer</label><select id="emD"><option value="">Pendiente (que lo tome cualquier chofer)</option>${[...new Set([...drivers(),...(o.driver?[nm(o.driver)]:[])])].map(d=>`<option value="${esc(d)}" ${o.status==='en_reparto'&&same(o.driver,d)?'selected':''}>${esc(d)}</option>`).join('')}</select>`:''}
   <button class="pri w" id="emS" style="margin-top:14px">Guardar</button>`);
-  $('emS').onclick=()=>{const cur=D.orders[id];if(!cur){closeSheet();return}put('orders',id,{...cur,note:$('emN').value.trim(),hora:$('emH').value.trim(),msgAt:Date.now()});closeSheet();toast(cur.driver&&cur.status==='en_reparto'?`Mensaje enviado a ${nm(cur.driver)} ✓`:'Guardado ✓')};
+  $('emS').onclick=()=>{const cur=D.orders[id];if(!cur){closeSheet();return}let o2={...cur,note:$('emN').value.trim(),hora:$('emH').value.trim(),msgAt:Date.now()},t='Guardado ✓';
+    const sel=$('emD');if(sel&&(cur.status==='pendiente'||cur.status==='en_reparto')){const d=sel.value,curD=cur.status==='en_reparto'?nm(cur.driver):'';
+      if(d!==curD){if(d){o2={...o2,status:'en_reparto',driver:d,takenAt:Date.now(),sentByOffice:true,reason:'',doneAt:0};t=`🚚 Pasado a ${d} ✓`}else{o2={...o2,status:'pendiente',driver:'',takenAt:0,sentByOffice:false};t='↩ Volvió a pendientes ✓'}}
+      else if(cur.driver&&cur.status==='en_reparto')t=`Mensaje enviado a ${nm(cur.driver)} ✓`}
+    put('orders',id,o2);closeSheet();toast(t)};
   setForm({t:'msg',id});setTimeout(()=>$('emN').focus(),60)}
 
 /* nuevo pedido */
