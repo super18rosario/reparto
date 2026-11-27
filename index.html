@@ -153,6 +153,8 @@ body.r-chofer button.only-cho{display:block!important}
           <div><label>Velocidad (km/h)</label><input id="cSpeed" type="number" min="5" inputmode="numeric"></div>
           <div><label>Al terminar</label><select id="cRet"><option value="1">Vuelve al local</option><option value="0">Termina en la última</option></select></div>
         </div>
+        <label>💬 Mensaje de WhatsApp al cliente</label><textarea id="cWa" rows="3"></textarea>
+        <div class="tip">Podés usar: <b>{cliente}</b> (nombre), <b>{chofer}</b> (quien lleva el pedido) y <b>{minutos}</b> (cuánto falta, aprox.).</div>
       </div>
       <div class="card only-ofi" style="padding:14px">
         <b>💾 Respaldo en Excel</b>
@@ -312,7 +314,8 @@ function bestOrder(orders,start){
 
 /* ============ datos compartidos ============ */
 const SB_URL='https://swlbrygxqhcppcziajae.supabase.co',SB_KEY='sb_publishable_qoAZjJvgmiYgVHjlcZFmzg_1QX78E3J';
-const DEF_CFG={depot:{name:'Supermercado 18',lat:-34.3156,lng:-57.3520},start:'08:00',speed:30,stopMin:4,ret:1};
+const DEF_WA='Hola {cliente} 👋 Soy {chofer}, del Supermercado 18. Ya voy en camino con tu pedido, llego en unos {minutos} minutos. ¡Gracias!';
+const DEF_CFG={depot:{name:'Supermercado 18',lat:-34.3156,lng:-57.3520},start:'08:00',speed:30,stopMin:4,ret:1,waMsg:DEF_WA};
 const COLS=['clients','orders','routes','config','positions'];
 const D={clients:{},orders:{},routes:{},config:{},positions:{}};
 let SB=null,ready=false,chan=null,userEmail='',isDriver=false,rol='';
@@ -718,11 +721,19 @@ $('cliSearch').oninput=renderCli;$('cliNew').onclick=()=>clientForm(null,false);
 $('cliList').onclick=e=>{const ed=e.target.closest('[data-ec]'),dl=e.target.closest('[data-dc]');if(ed)clientForm(ed.dataset.ec,false);if(dl)confirmBtn(dl,'¿Borrar?',()=>del('clients',dl.dataset.dc))};
 
 /* ajustes */
-function loadCfg(){if(document.activeElement&&document.activeElement.closest&&document.activeElement.closest('#tab-cfg'))return;const c=cfg(),d=depot();$('depName').value=d.name;$('depLoc').value=fmtLL(d);$('cStart').value=c.start;$('cStopMin').value=c.stopMin;$('cSpeed').value=c.speed;$('cRet').value=c.ret}
+function loadCfg(){if(document.activeElement&&document.activeElement.closest&&document.activeElement.closest('#tab-cfg'))return;const c=cfg(),d=depot();$('depName').value=d.name;$('depLoc').value=fmtLL(d);$('cStart').value=c.start;$('cStopMin').value=c.stopMin;$('cSpeed').value=c.speed;$('cRet').value=c.ret;$('cWa').value=c.waMsg||DEF_WA}
 function saveCfg(patch){putCfg(Object.assign({},cfg(),patch));toast('Guardado')}
 $('depName').onchange=e=>saveCfg({depot:{...depot(),name:e.target.value.trim()||'Local'}});
 $('depLoc').onchange=e=>{const p=parseLoc(e.target.value);if(!p){$('depErr').textContent='No reconozco esa ubicación.';return}$('depErr').textContent='';saveCfg({depot:{...depot(),...p}})};
 [['cStart','start'],['cStopMin','stopMin'],['cSpeed','speed'],['cRet','ret']].forEach(([id,k])=>$(id).onchange=e=>saveCfg({[k]:e.target.value}));
+$('cWa').onchange=e=>saveCfg({waMsg:e.target.value.trim()||DEF_WA});
+/* contacto con el cliente: WhatsApp y llamada */
+const telOf=o=>String((o.cid&&D.clients[o.cid]&&D.clients[o.cid].tel)||o.tel||'').trim();
+function waNum(t){let d=String(t).replace(/\D/g,'');if(!d)return'';if(d.startsWith('00'))d=d.slice(2);if(d.startsWith('598'))return d;if(d.startsWith('0'))d=d.slice(1);return'598'+d}
+function waText(o,mins){return(cfg().waMsg||DEF_WA).replace(/\{cliente\}/g,o.name||'').replace(/\{chofer\}/g,me||nm(o.driver)||'').replace(/\{minutos\}/g,String(Math.max(5,Math.ceil((mins||5)/5)*5)))}
+function contactBtns(o,mins){const t=telOf(o);if(!t)return'<div class="cnt" style="text-align:center;padding:6px">📵 Este cliente no tiene teléfono. Cargalo en Clientes ✏️</div>';
+  return`<div class="row" style="margin-top:8px"><a class="btn" style="background:#25d366;color:#fff" href="https://wa.me/${waNum(t)}?text=${encodeURIComponent(waText(o,mins))}" target="_blank" rel="noopener">💬 WhatsApp</a><a class="btn" href="tel:${esc(t.replace(/[^\d+]/g,''))}">📞 Llamar</a></div>`}
+function etaMin(id){const l=myRoute(),tl=timeline(l);return tl.eta[id]!=null?tl.eta[id]:5}
 
 /* ============ CHOFER ============ */
 const myOrders=()=>ordersArr().filter(o=>same(o.driver,me)&&o.status==='en_reparto');
@@ -803,6 +814,7 @@ $('choBody').addEventListener('click',e=>{
 function stopSheet(id){const o=D.orders[id];
   openSheet(`<h3><span>${ic(o)}${esc(o.name)}</span><button class="x" data-close>✕</button></h3><div class="cnt">${esc(o.addr||'')}${o.tel?' · 📞 '+esc(o.tel):''}</div>${msg(o)}
   <div class="row" style="margin-top:12px"><a class="btn gm" href="${navUrl(o)}" target="_blank" rel="noopener">🧭 Google Maps</a><a class="btn wz" href="${wazeUrl(o)}" target="_blank" rel="noopener">Waze</a></div>
+  ${contactBtns(o,etaMin(id))}
   <button class="ok w" id="s1" style="margin-top:10px">✅ ${o.kind==='retiro'?'Retirado':'Entregado'}</button><button class="warn w" id="s2" style="margin-top:10px">No pude entregar</button>
   ${hasLL(o)?'':'<button class="w" id="s4" style="margin-top:10px">📍 Estoy en la puerta: guardar ubicación</button><div id="s4m" class="lok"></div>'}
   <button class="ghost w" id="s3" style="margin-top:6px">Devolver a pendientes</button>`);
@@ -830,7 +842,7 @@ function renderDrv(){
     $('drvEnd').onclick=()=>{$('drv').classList.remove('on');render()};return}
   const o=list[0],tl=timeline(list);
   $('drvCard').innerHTML=`<div class="k">${o.kind==='retiro'?'PRÓXIMO RETIRO':'PRÓXIMA ENTREGA'} · aprox. ${clock(tl.eta[o.id])}</div>${o.prio?'<div class="k" style="color:#d97706">★ PRIORIDAD</div>':''}${o.hora?`<div class="nt" style="background:#dbeafe;color:#1e3a8a">🕐 ${esc(o.hora)}</div>`:''}<div class="nm">${ic(o)}${esc(o.name)}</div>${o.addr?`<div class="ad">${esc(o.addr)}</div>`:''}${o.note?`<div class="nt">📝 ${esc(o.note)}</div>`:''}${o.tel?`<div class="ad">📞 ${esc(o.tel)}</div>`:''}${list[1]?`<div class="k" style="margin-top:14px">Después: ${esc(list[1].name)}</div>`:''}`;
-  $('drvBtns').innerHTML=`<div class="row"><a class="btn gm" href="${navUrl(o)}" target="_blank" rel="noopener">🧭 Ir</a><a class="btn wz" href="${wazeUrl(o)}" target="_blank" rel="noopener" style="flex:0 0 30%">Waze</a></div><button class="ok" id="dOk">✅ ${o.kind==='retiro'?'Retirado':'Entregado'}</button><button class="warn sm" id="dNo" style="padding:12px;font-size:16px">No pude entregar</button>`;
+  $('drvBtns').innerHTML=`<div class="row"><a class="btn gm" href="${navUrl(o)}" target="_blank" rel="noopener">🧭 Ir</a><a class="btn wz" href="${wazeUrl(o)}" target="_blank" rel="noopener" style="flex:0 0 30%">Waze</a></div>${contactBtns(o,tl.eta[o.id])}<button class="ok" id="dOk">✅ ${o.kind==='retiro'?'Retirado':'Entregado'}</button><button class="warn sm" id="dNo" style="padding:12px;font-size:16px">No pude entregar</button>`;
   $('dOk').onclick=()=>{finish(o.id,'entregado');renderDrv()};
   $('dNo').onclick=()=>failSheet(o.id);
 }
