@@ -47,9 +47,11 @@ label{display:block;font-size:13px;color:var(--mut);margin:10px 0 4px}
 .sheet{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:35;display:none;align-items:flex-end;justify-content:center}
 .sheet.on{display:flex}
 .panel{background:var(--card);width:100%;max-width:640px;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:16px}
-.panel h3{margin:0 0 6px;font-size:18px;display:flex;align-items:center}
+.panel h3{margin:-16px -16px 6px;padding:12px 16px 10px;font-size:18px;display:flex;align-items:center;position:sticky;top:-16px;background:var(--card);z-index:3;border-bottom:1px solid var(--ln)}
+.sbar{position:sticky;bottom:-16px;margin:12px -16px -16px;padding:10px 16px 14px;background:var(--card);border-top:1px solid var(--ln);z-index:3}
+details>summary{list-style:none}details>summary::-webkit-details-marker{display:none}
 .panel h3 span{flex:1}
-.x{background:none;color:var(--mut);padding:6px 8px;font-size:18px}
+.x{background:var(--bg);color:var(--tx);padding:8px 14px;font-size:20px}
 .cl{display:flex;align-items:center;gap:10px;padding:12px 4px;border-bottom:1px solid var(--ln);cursor:pointer}
 .cl .b{flex:1;min-width:0}.cl .d{font-size:13px;color:var(--mut)}
 .chk{width:26px;height:26px;flex:none;accent-color:var(--pri)}
@@ -529,8 +531,10 @@ document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>goTab(b.dataset
 document.querySelectorAll('#cho nav button').forEach(b=>b.onclick=()=>{if(b.dataset.ct){setMode('ofi');goTab(b.dataset.ct)}});
 
 /* ============ hojas ============ */
-function openSheet(html){$('shp').innerHTML=html;$('sh').classList.add('on')}
-function closeSheet(){$('sh').classList.remove('on');curForm=null;try{localStorage.removeItem('rep3_draft')}catch(e){}}
+let ignorePop=false;
+function openSheet(html){$('shp').innerHTML=html;if(!$('sh').classList.contains('on')){try{history.pushState({sh:1},'')}catch(e){}}$('sh').classList.add('on');$('shp').scrollTop=0}
+window.addEventListener('popstate',()=>{if(ignorePop){ignorePop=false;return}if($('sh').classList.contains('on'))closeSheet(true)});
+function closeSheet(fromPop){const was=$('sh').classList.contains('on');$('sh').classList.remove('on');if(was&&fromPop!==true&&history.state&&history.state.sh){ignorePop=true;try{history.back()}catch(e){ignorePop=false}}curForm=null;try{localStorage.removeItem('rep3_draft')}catch(e){}}
 /* borrador: lo que se está escribiendo sobrevive si la página se refresca */
 let curForm=null,draftChecked=false;
 function setForm(f){curForm=f}
@@ -538,7 +542,7 @@ function saveDraft(){if(!curForm)return;const v={};let has=false;
   $('shp').querySelectorAll('input[id],textarea[id],select[id]').forEach(el=>{if(el.type==='checkbox'){v[el.id]=el.checked;return}v[el.id]=el.value;if(el.id!=='pkS'&&el.tagName!=='SELECT'&&el.value.trim())has=true});
   if(has)lset('rep3_draft',{f:curForm,v,at:Date.now()});else{try{localStorage.removeItem('rep3_draft')}catch(e){}}}
 $('shp').addEventListener('input',saveDraft);$('shp').addEventListener('change',saveDraft);
-function fillDraft(v){Object.entries(v).forEach(([k,x])=>{const el=$(k);if(!el)return;if(el.type==='checkbox')el.checked=!!x;else el.value=x;el.dispatchEvent(new Event(el.tagName==='SELECT'?'change':'input',{bubbles:true}))})}
+function fillDraft(v){if($('pkMore')&&['pkNote','pkHora'].some(k=>v[k]))$('pkMore').open=true;Object.entries(v).forEach(([k,x])=>{const el=$(k);if(!el)return;if(el.type==='checkbox')el.checked=!!x;else el.value=x;el.dispatchEvent(new Event(el.tagName==='SELECT'?'change':'input',{bubbles:true}))})}
 function checkDraft(){const d=lget('rep3_draft',null);if(!d||!d.f||Date.now()-d.at>86400000)return;
   const txt=Object.entries(d.v).filter(([k,x])=>typeof x==='string'&&x.trim()&&!/^(pkS|pkKind|pkTo)$/.test(k)).map(([k,x])=>esc(x)).slice(0,3).join(' · ');
   const what={pick:'un pedido nuevo',cli:'un cliente',once:'un lugar de una vez',msg:'un mensaje para el chofer'}[d.f.t]||'algo';
@@ -627,15 +631,20 @@ function editMsg(id){const o=D.orders[id];if(!o)return;
 /* nuevo pedido */
 function drivers(){return[...new Set([...Object.values(D.routes).map(r=>nm(r.driver)),...ordersArr().map(o=>nm(o.driver))].filter(Boolean))]}
 let pkTo='',pkKind='entrega';
-function pickHtml(){const ds=drivers();if(pkTo&&!ds.includes(pkTo))pkTo='';
-  return `<h3><span>Nuevo pedido</span><button class="x" data-close>✕</button></h3>
+let pkAdded=0;
+function pickHtml(){const ds=drivers();if(pkTo&&!ds.includes(pkTo))pkTo='';const more=pkKind!=='entrega'||!!pkTo;
+  return `<h3><span>Nuevo pedido</span><button class="x" data-close aria-label="Cerrar">✕</button></h3>
+  <input id="pkS" placeholder="🔍 Buscar cliente (nombre o dirección)" autocomplete="off">
+  <details id="pkMore" ${more?'open':''} style="margin-top:8px"><summary style="cursor:pointer;color:var(--blue);font-weight:600;padding:8px 2px">＋ Mensaje, hora, prioridad o mandarlo a un chofer</summary>
   <div class="row"><select id="pkKind"><option value="entrega" ${pkKind==='entrega'?'selected':''}>📦 Entrega</option><option value="retiro" ${pkKind==='retiro'?'selected':''}>📥 Retiro / levantar algo</option></select>
   <select id="pkTo"><option value="">Dejar en pendientes</option>${ds.map(d=>`<option value="${esc(d)}" ${pkTo===d?'selected':''}>🚚 Mandar a ${esc(d)}</option>`).join('')}</select></div>
-  <label>📝 Mensaje para el chofer (opcional)</label><textarea id="pkNote" rows="2" placeholder="Ej: tocar timbre 2 · cobrar en efectivo · retirar 3 cajas"></textarea>
-  <label>🕐 Hora (opcional)</label><input id="pkHora" placeholder="Ej: 10:30 · antes de las 11 · después del mediodía">
+  <label>📝 Mensaje para el chofer</label><textarea id="pkNote" rows="2" placeholder="Ej: tocar timbre 2 · cobrar en efectivo · retirar 3 cajas"></textarea>
+  <label>🕐 Hora</label><input id="pkHora" placeholder="Ej: 10:30 · antes de las 11 · después del mediodía">
   <label class="row" style="align-items:center;gap:10px;color:var(--tx);font-size:16px;margin-top:10px"><input type="checkbox" class="chk" id="pkPrio" style="flex:0 0 26px"> <span>★ Con prioridad (va primero)</span></label>
-  <input id="pkS" placeholder="🔍 Buscar cliente" style="margin-top:8px"><div id="pkL"></div>
-  <div class="row" style="margin-top:12px"><button id="pkNew">＋ Cliente nuevo</button><button id="pkOnce">📍 Lugar de una vez</button></div>`}
+  </details>
+  <div id="pkL"></div>
+  <div class="row" style="margin-top:12px"><button id="pkNew">＋ Cliente nuevo</button><button id="pkOnce">📍 Lugar de una vez</button></div>
+  <div class="sbar"><button class="pri w" id="pkDone" data-close>✓ Listo</button></div>`}
 function orderOpts(){return{kind:($('pkKind')&&$('pkKind').value)||'entrega',to:($('pkTo')&&$('pkTo').value)||'',note:($('pkNote')&&$('pkNote').value.trim())||'',hora:($('pkHora')&&$('pkHora').value.trim())||'',prio:!!($('pkPrio')&&$('pkPrio').checked)}}
 function renderPick(){
   const qv=($('pkS').value||'').trim().toLowerCase(),busy=new Set(ordersArr().filter(o=>o.status==='pendiente'||o.status==='en_reparto').map(o=>o.cid));
@@ -647,10 +656,12 @@ function createOrder(base,opts){opts=opts||{};const id=uid(),now=Date.now();
     status:opts.to?'en_reparto':'pendiente',driver:opts.to||'',takenAt:opts.to?now:0,sentByOffice:!!opts.to,created:now,doneAt:0,reason:''});
   toast(opts.to?`🚚 Enviado a ${opts.to} ✓`:'Pedido agregado ✓');return id}
 function newOrder(cid,opts){const c=D.clients[cid];put('clients',cid,{...c,uses:(c.uses||0)+1});return createOrder({cid,...c},opts)}
-$('addOrder').onclick=()=>{openSheet(pickHtml());renderPick();$('pkS').oninput=renderPick;
+$('addOrder').onclick=()=>{pkAdded=0;openSheet(pickHtml());renderPick();$('pkS').oninput=renderPick;
   $('pkKind').onchange=e=>pkKind=e.target.value;$('pkTo').onchange=e=>pkTo=e.target.value;
   setForm({t:'pick'});
-  $('pkL').onclick=e=>{const p=e.target.closest('[data-pk]');if(!p)return;newOrder(p.dataset.pk,orderOpts());$('pkNote').value='';$('pkHora').value='';$('pkPrio').checked=false;saveDraft();renderPick()};
+  $('pkL').onclick=e=>{const p=e.target.closest('[data-pk]');if(!p)return;const c=D.clients[p.dataset.pk];newOrder(p.dataset.pk,orderOpts());pkAdded++;
+    $('pkNote').value='';$('pkHora').value='';$('pkPrio').checked=false;$('pkS').value='';saveDraft();renderPick();
+    $('pkDone').textContent=`✓ Listo · ${pkAdded} ${pkAdded===1?'pedido cargado':'pedidos cargados'}`;$('shp').scrollTop=0;toast(`✓ Pedido para ${c?c.name:''}`)};
   $('pkNew').onclick=()=>clientForm(null,orderOpts());
   $('pkOnce').onclick=()=>onceForm(orderOpts())};
 function onceForm(opts){
