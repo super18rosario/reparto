@@ -80,6 +80,8 @@ details>summary{list-style:none}details>summary::-webkit-details-marker{display:
 .sync{font-size:12px;opacity:.85}
 .dis{opacity:.45;pointer-events:none}
 .lok{font-size:14px;margin-top:6px}
+.wt{display:inline-block;font-size:12px;font-weight:600;border-radius:6px;padding:1px 6px;margin-top:3px;background:var(--bg);color:var(--mut)}
+.wt.w1{background:#fef3c7;color:#92400e}.wt.w2{background:#fee2e2;color:#991b1b}
 html,body{overscroll-behavior-y:none}
 .d2{font-size:14px;margin-top:3px;color:#92400e;white-space:normal}
 @media (prefers-color-scheme:dark){.d2{color:#fbbf24}}
@@ -226,6 +228,7 @@ function parseLoc(s){
 const failsOf=o=>Array.isArray(o&&o.intentos)?o.intentos:[];
 const failEvents=()=>Object.entries(D.orders).flatMap(([id,o])=>failsOf(o).map(f=>({...o,id,status:'no_entregado',driver:f.driver,reason:f.reason,doneAt:f.at,_fail:1})));
 const failLine=o=>{const f=failsOf(o);if(!f.length)return'';const l=f[f.length-1];return`<div class="d2" style="color:#dc2626">⚠️ No se pudo entregar ${fmtDay(l.at)} ${hhmm(l.at)} (${esc(l.driver||'')}): ${esc(l.reason||'')}${f.length>1?' · '+f.length+' intentos':''}</div>`};
+const waitTag=o=>{if(!o.created)return'';const old=o.created<todayStart();return`<div><span class="wt">🕒 ${old?fmtDay(o.created)+' ':''}${hhmm(o.created)}</span></div>`};
 const msg=o=>(o.hora||o.note)?`<div class="d2">${o.hora?'🕐 '+esc(o.hora)+(o.note?' · ':''):''}${o.note?'📝 '+esc(o.note):''}</div>`:'';
 const ic=o=>o&&o.kind==='retiro'?'📥 ':'';
 const hasLL=p=>p&&typeof p.lat==='number'&&typeof p.lng==='number';
@@ -569,7 +572,7 @@ function renderOfi(){
   $('kpis').innerHTML=`<div class="kpi"><b>${pe.length}</b><span>Pendientes</span></div><div class="kpi"><b>${go.length}</b><span>En camino</span></div><div class="kpi"><b style="color:var(--ok)">${ok.length}</b><span>Entregados hoy</span></div><div class="kpi"><b style="color:#dc2626">${noHoy.length}</b><span>No entregados hoy</span></div>`;
   if(!all.length){$('ofiLists').innerHTML=`<div class="empty"><div>📦</div><p><b>No hay pedidos.</b></p><p>Tocá <b>＋ Nuevo pedido</b>. Los choferes eligen cuáles llevar desde su celular, en modo <b>Chofer</b>.</p></div>`;return}
   let h='';
-  if(pe.length)h+=`<div class="card"><div class="ch"><b>Pendientes</b><span class="cnt">esperando chofer</span></div>${pe.map(o=>`<div class="it"><button class="ghost sm" data-prio="${o.id}" title="Prioridad">${o.prio?'<span class="star">★</span>':'☆'}</button><div class="b"><div class="t">${ic(o)}${esc(o.name)}</div><div class="d">${esc(o.addr||'')}${hasLL(o)?'':' · ⚠️ sin ubicación'}</div>${msg(o)}${failLine(o)}</div><button class="ghost sm" data-eo="${o.id}" title="Mensaje">✏️</button><button class="ghost sm no-rep" data-delo="${o.id}">✕</button></div>`).join('')}</div>`;
+  if(pe.length)h+=`<div class="card"><div class="ch"><b>Pendientes</b><span class="cnt">esperando chofer</span></div>${pe.map(o=>`<div class="it"><button class="ghost sm" data-prio="${o.id}" title="Prioridad">${o.prio?'<span class="star">★</span>':'☆'}</button><div class="b"><div class="t">${ic(o)}${esc(o.name)}</div><div class="d">${esc(o.addr||'')}${hasLL(o)?'':' · ⚠️ sin ubicación'}</div>${msg(o)}${failLine(o)}${waitTag(o)}</div><button class="ghost sm" data-eo="${o.id}" title="Mensaje">✏️</button><button class="ghost sm no-rep" data-delo="${o.id}">✕</button></div>`).join('')}</div>`;
   const drivers=[...new Set(go.map(o=>nm(o.driver)))];
   drivers.forEach(dn=>{const r=D.routes[slug(dn)],mine=all.filter(o=>same(o.driver,dn)&&(o.status==='en_reparto'||(o.status!=='pendiente'&&o.doneAt>=todayStart())));
     const ids=(r&&r.ids||[]).filter(id=>mine.some(o=>o.id===id));mine.forEach(o=>{if(!ids.includes(o.id))ids.push(o.id)});
@@ -782,7 +785,7 @@ function renderCho(){
     B.innerHTML=`<p class="cnt" style="margin:4px 2px 10px">Hola <b>${esc(me)}</b> · <a href="#" id="chMe" style="color:var(--mut)">cambiar</a>${dn?` · hoy hiciste ${dn}`:''}</p>
       ${!mine.length&&dn&&!pe.length?`<div class="empty"><div>🎉</div><p><b>¡Terminaste todo!</b></p></div>`:''}
       <div class="card"><div class="ch"><b>${mine.length?'Sumar pedidos':'Elegí los pedidos que llevás'}</b><button class="sm" id="pkAll">Todos</button></div>
-      ${pe.length?pe.map(o=>`<label class="it" style="cursor:pointer"><input type="checkbox" class="chk" data-tk="${o.id}" ${picked.has(o.id)?'checked':''}><div class="b"><div class="t">${o.prio?'<span class="star">★</span> ':''}${ic(o)}${esc(o.name)}</div><div class="d">${esc(o.addr||'')}</div>${msg(o)}${failLine(o)}</div><button class="ghost sm" data-cprio="${o.id}" title="Prioridad" style="font-size:20px">${o.prio?'<span class="star">★</span>':'☆'}</button></label>`).join(''):'<p class="cnt" style="padding:14px">No hay pedidos pendientes.</p>'}</div>`;
+      ${pe.length?pe.map(o=>`<label class="it" style="cursor:pointer"><input type="checkbox" class="chk" data-tk="${o.id}" ${picked.has(o.id)?'checked':''}><div class="b"><div class="t">${o.prio?'<span class="star">★</span> ':''}${ic(o)}${esc(o.name)}</div><div class="d">${esc(o.addr||'')}</div>${msg(o)}${failLine(o)}${waitTag(o)}</div><button class="ghost sm" data-cprio="${o.id}" title="Prioridad" style="font-size:20px">${o.prio?'<span class="star">★</span>':'☆'}</button></label>`).join(''):'<p class="cnt" style="padding:14px">No hay pedidos pendientes.</p>'}</div>`;
     F.innerHTML=`${mine.length?'<button id="pkBack">Volver</button>':''}<button class="pri" id="pkGo" disabled>Llevar y armar recorrido</button>`;
     const upd=()=>{picked=new Set([...B.querySelectorAll('[data-tk]:checked')].map(x=>x.dataset.tk));const n=B.querySelectorAll('[data-tk]:checked').length;$('pkGo').disabled=!n;$('pkGo').textContent=n?`Llevar ${n} y armar recorrido`:'Tildá los pedidos'};
     B.onchange=upd;upd();
