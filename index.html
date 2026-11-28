@@ -154,7 +154,7 @@ body.r-chofer button.only-cho{display:block!important}
           <div><label>Al terminar</label><select id="cRet"><option value="1">Vuelve al local</option><option value="0">Termina en la última</option></select></div>
         </div>
         <label>💬 Mensaje de WhatsApp al cliente</label><textarea id="cWa" rows="3"></textarea>
-        <div class="tip">Podés usar: <b>{cliente}</b> (nombre), <b>{chofer}</b> (quien lleva el pedido) y <b>{minutos}</b> (cuánto falta, aprox.).</div>
+        <div class="tip">Podés usar: <b>{cliente}</b> (primer nombre), <b>{nombre_completo}</b>, <b>{chofer}</b> (quien lleva el pedido) y <b>{minutos}</b> (cuánto falta, aprox.).</div>
       </div>
       <div class="card only-ofi" style="padding:14px">
         <b>💾 Respaldo en Excel</b>
@@ -730,7 +730,7 @@ $('cWa').onchange=e=>saveCfg({waMsg:e.target.value.trim()||DEF_WA});
 /* contacto con el cliente: WhatsApp y llamada */
 const telOf=o=>String((o.cid&&D.clients[o.cid]&&D.clients[o.cid].tel)||o.tel||'').trim();
 function waNum(t){let d=String(t).replace(/\D/g,'');if(!d)return'';if(d.startsWith('00'))d=d.slice(2);if(d.startsWith('598'))return d;if(d.startsWith('0'))d=d.slice(1);return'598'+d}
-function waText(o,mins){return(cfg().waMsg||DEF_WA).replace(/\{cliente\}/g,o.name||'').replace(/\{chofer\}/g,me||nm(o.driver)||'').replace(/\{minutos\}/g,String(Math.max(5,Math.ceil((mins||5)/5)*5)))}
+function waText(o,mins){const first=(String(o.name||'').trim().split(/[\s,(.\-]+/)[0]||'').toLowerCase().replace(/^./,c=>c.toUpperCase());return(cfg().waMsg||DEF_WA).replace(/\{cliente\}/g,first).replace(/\{nombre_completo\}/g,o.name||'').replace(/\{chofer\}/g,me||nm(o.driver)||'').replace(/\{minutos\}/g,String(Math.max(5,Math.ceil((mins||5)/5)*5)))}
 function contactBtns(o,mins){const t=telOf(o);if(!t)return'<div class="cnt" style="text-align:center;padding:6px">📵 Este cliente no tiene teléfono. Cargalo en Clientes ✏️</div>';
   return`<div class="row" style="margin-top:8px"><a class="btn" style="background:#25d366;color:#fff" href="https://wa.me/${waNum(t)}?text=${encodeURIComponent(waText(o,mins))}" target="_blank" rel="noopener">💬 WhatsApp</a><a class="btn" href="tel:${esc(t.replace(/[^\d+]/g,''))}">📞 Llamar</a></div>`}
 function etaMin(id){const l=myRoute(),tl=timeline(l);return tl.eta[id]!=null?tl.eta[id]:5}
